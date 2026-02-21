@@ -9,17 +9,20 @@ type TerrainLayerConfig = {
   depthOffset: number;
   amplitude: number;
   noiseScale: number;
-  speed: number;
+  seed: number;
   opacity: number;
   widthScale: number;
+  ridgeX: number;
+  ridgeStrength: number;
 };
 
 const vertexShader = `
-uniform float uTime;
 uniform float uAmplitude;
 uniform float uNoiseScale;
-uniform float uSpeed;
 uniform float uYOffset;
+uniform float uSeed;
+uniform float uRidgeX;
+uniform float uRidgeStrength;
 
 varying float vHeight;
 
@@ -116,12 +119,14 @@ float fbm(vec3 p) {
 
 void main() {
   vec3 transformed = position;
-  vec3 noisePoint = vec3(position.xz * uNoiseScale, uTime * uSpeed);
+  vec3 noisePoint = vec3(position.xz * uNoiseScale, uSeed);
 
   float ridge = fbm(noisePoint);
-  float ripple = snoise(noisePoint * 2.8 + vec3(0.0, 0.0, uTime * 0.15));
+  float ripple = snoise(noisePoint * 2.8 + vec3(0.0, 0.0, 1.9 + uSeed));
+  float ridgeShape = exp(-pow((position.x - uRidgeX) / 78.0, 2.0)) * uRidgeStrength;
+  float trench = exp(-pow((position.x + 10.0) / 36.0, 2.0)) * 8.0;
 
-  transformed.y += (ridge * 1.25 + ripple * 0.28) * uAmplitude + uYOffset;
+  transformed.y += (ridge * 1.28 + ripple * 0.22) * uAmplitude + ridgeShape - trench + uYOffset;
 
   vHeight = transformed.y;
 
@@ -144,9 +149,6 @@ void main() {
 
 function createTerrainLayer(config: TerrainLayerConfig): {
   mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
-  uniforms: {
-    uTime: { value: number };
-  };
 } {
   const geometry = new THREE.PlaneGeometry(
     220 * config.widthScale,
@@ -159,10 +161,11 @@ function createTerrainLayer(config: TerrainLayerConfig): {
   geometry.rotateZ(-0.12);
 
   const uniforms = {
-    uTime: { value: 0 },
     uAmplitude: { value: config.amplitude },
     uNoiseScale: { value: config.noiseScale },
-    uSpeed: { value: config.speed },
+    uSeed: { value: config.seed },
+    uRidgeX: { value: config.ridgeX },
+    uRidgeStrength: { value: config.ridgeStrength },
     uColor: { value: new THREE.Color(config.color) },
     uOpacity: { value: config.opacity },
     uYOffset: { value: config.yOffset },
@@ -181,7 +184,7 @@ function createTerrainLayer(config: TerrainLayerConfig): {
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(0, 0, config.depthOffset);
 
-  return { mesh, uniforms: { uTime: uniforms.uTime } };
+  return { mesh };
 }
 
 export default function TerrainCanvas() {
@@ -207,8 +210,8 @@ export default function TerrainCanvas() {
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog(0x06090d, 96, 230);
 
-    const camera = new THREE.PerspectiveCamera(43, 1, 0.1, 500);
-    camera.position.set(0, 42, 144);
+    const camera = new THREE.PerspectiveCamera(39, 1, 0.1, 500);
+    camera.position.set(0, 35, 128);
 
     const terrainGroup = new THREE.Group();
     scene.add(terrainGroup);
@@ -227,29 +230,35 @@ export default function TerrainCanvas() {
         depthOffset: -16,
         amplitude: 20,
         noiseScale: 0.017,
-        speed: 0.26,
-        opacity: 0.72,
-        widthScale: 0.88,
+        seed: 1.35,
+        opacity: 0.74,
+        widthScale: 1.05,
+        ridgeX: 10,
+        ridgeStrength: 22,
       }),
       createTerrainLayer({
         color: "#cf8153",
-        yOffset: -1,
+        yOffset: -2,
         depthOffset: -3,
-        amplitude: 24,
+        amplitude: 23,
         noiseScale: 0.02,
-        speed: 0.32,
-        opacity: 0.66,
-        widthScale: 0.98,
+        seed: 5.9,
+        opacity: 0.64,
+        widthScale: 1.12,
+        ridgeX: -6,
+        ridgeStrength: 18,
       }),
       createTerrainLayer({
         color: "#9bb2bc",
-        yOffset: -12,
-        depthOffset: 14,
-        amplitude: 21,
+        yOffset: -14,
+        depthOffset: 16,
+        amplitude: 19,
         noiseScale: 0.019,
-        speed: 0.22,
-        opacity: 0.62,
-        widthScale: 1.08,
+        seed: 11.25,
+        opacity: 0.6,
+        widthScale: 1.34,
+        ridgeX: -22,
+        ridgeStrength: 14,
       }),
     ];
 
@@ -265,11 +274,11 @@ export default function TerrainCanvas() {
       blending: THREE.AdditiveBlending,
     });
     const haze = new THREE.Mesh(hazeGeometry, hazeMaterial);
-    haze.position.set(0, -6, 6);
+    haze.position.set(-3, -7, 8);
     terrainGroup.add(haze);
 
     const pointer = { x: 0, y: 0 };
-    const target = { yaw: 0, pitch: -0.16, camX: 0, camY: 42 };
+    const base = { yaw: 0, pitch: -0.21, camX: 0, camY: 35 };
 
     const setSize = () => {
       const width = mount.clientWidth;
@@ -277,26 +286,35 @@ export default function TerrainCanvas() {
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
+      renderer.render(scene, camera);
     };
 
     setSize();
+    camera.lookAt(0, -6, 3);
+
+    const renderAt = (yaw: number, pitch: number, camX: number, camY: number) => {
+      terrainGroup.rotation.y = yaw;
+      terrainGroup.rotation.x = pitch;
+      camera.position.x = camX;
+      camera.position.y = camY;
+      camera.lookAt(0, -6, 3);
+      renderer.render(scene, camera);
+    };
 
     const onPointerMove = (event: PointerEvent) => {
       const rect = mount.getBoundingClientRect();
       pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       pointer.y = ((event.clientY - rect.top) / rect.height) * 2 - 1;
 
-      target.yaw = pointer.x * 0.23;
-      target.pitch = -0.16 + pointer.y * 0.12;
-      target.camX = pointer.x * 11;
-      target.camY = 42 + pointer.y * 4;
+      const yaw = pointer.x * 0.045;
+      const pitch = base.pitch + pointer.y * 0.016;
+      const camX = pointer.x * 2.1;
+      const camY = base.camY + pointer.y * 1.1;
+      renderAt(yaw, pitch, camX, camY);
     };
 
     const onPointerLeave = () => {
-      target.yaw = 0;
-      target.pitch = -0.16;
-      target.camX = 0;
-      target.camY = 42;
+      renderAt(base.yaw, base.pitch, base.camX, base.camY);
     };
 
     mount.addEventListener("pointermove", onPointerMove);
@@ -304,32 +322,9 @@ export default function TerrainCanvas() {
 
     const resizeObserver = new ResizeObserver(() => setSize());
     resizeObserver.observe(mount);
-
-    const clock = new THREE.Clock();
-    let raf = 0;
-
-    const render = () => {
-      const time = clock.getElapsedTime();
-
-      terrainLayers.forEach((layer, index) => {
-        layer.uniforms.uTime.value = time + index * 11;
-      });
-
-      terrainGroup.rotation.y += (target.yaw - terrainGroup.rotation.y) * 0.035;
-      terrainGroup.rotation.x += (target.pitch - terrainGroup.rotation.x) * 0.03;
-
-      camera.position.x += (target.camX - camera.position.x) * 0.03;
-      camera.position.y += (target.camY - camera.position.y) * 0.03;
-      camera.lookAt(0, -4, 4);
-
-      renderer.render(scene, camera);
-      raf = window.requestAnimationFrame(render);
-    };
-
-    render();
+    renderAt(base.yaw, base.pitch, base.camX, base.camY);
 
     return () => {
-      window.cancelAnimationFrame(raf);
       resizeObserver.disconnect();
       mount.removeEventListener("pointermove", onPointerMove);
       mount.removeEventListener("pointerleave", onPointerLeave);
