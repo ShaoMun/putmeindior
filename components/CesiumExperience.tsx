@@ -5,18 +5,23 @@ import {
   Cartesian2,
   CallbackProperty,
   Cartesian3,
+  Cesium3DTileset,
   Cesium3DTileStyle,
   Color,
+  Credit,
   createOsmBuildingsAsync,
-  createWorldImageryAsync,
+  buildModuleUrl,
+  defined,
   createWorldTerrainAsync,
   HeightReference,
   Ion,
-  IonWorldImageryStyle,
   Math as CesiumMath,
-  PolylineGlowMaterialProperty,
+  Rectangle,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
+  SingleTileImageryProvider,
+  TileMapServiceImageryProvider,
+  UrlTemplateImageryProvider,
   Viewer,
   type Entity,
 } from "cesium";
@@ -26,6 +31,16 @@ type Phase = "GLOBE_INTRO" | "FLY_TO_KL" | "DASHBOARD";
 
 const KL_LAT = 3.139;
 const KL_LON = 101.6869;
+const MALAYSIA_BOUNDS = {
+  west: 99.5,
+  east: 119.6,
+  south: 0.8,
+  north: 7.5,
+};
+const MIN_CAMERA_HEIGHT_METERS = 120;
+const MAX_CAMERA_HEIGHT_METERS = 2_200_000;
+const BLACK_PIXEL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5l9VUAAAAASUVORK5CYII=";
 
 function markerColor(probability: number) {
   const bucket = threatColor(probability);
@@ -47,6 +62,8 @@ export default function CesiumExperience() {
     let clickHandler: ScreenSpaceEventHandler | undefined;
     let removeIntroTick: (() => void) | undefined;
     let removeTileLoadListener: (() => void) | undefined;
+    let removeCameraBoundsListener: (() => void) | undefined;
+    let buildingsTileset: Cesium3DTileset | undefined;
     let isMounted = true;
     let isCleaningUp = false;
 
@@ -75,24 +92,23 @@ export default function CesiumExperience() {
       const terrainProvider = await createWorldTerrainAsync();
       if (shouldStop()) return;
       viewer.terrainProvider = terrainProvider;
-      viewer.scene.globe.baseColor = Color.fromCssColorString("#27323d");
+      viewer.scene.globe.baseColor = Color.fromCssColorString("#4a6073");
+      viewer.scene.globe.enableLighting = false;
+      if (viewer.scene.skyAtmosphere) {
+        viewer.scene.skyAtmosphere.show = true;
+      }
 
-      const imageryProvider = await createWorldImageryAsync({
-        style: IonWorldImageryStyle.AERIAL_WITH_LABELS,
-      });
-      if (shouldStop()) return;
-      viewer.imageryLayers.removeAll();
-      viewer.imageryLayers.addImageryProvider(imageryProvider);
-
+      // Ensure Earth is visible on first load even if external imagery is unavailable.
       try {
-        const buildings = await createOsmBuildingsAsync();
-        if (shouldStop()) return;
-        buildings.style = new Cesium3DTileStyle({
-          color: "color('#d7dde5', 0.45)",
-        });
-        viewer.scene.primitives.add(buildings);
+        const introImagery = await TileMapServiceImageryProvider.fromUrl(
+          buildModuleUrl("Assets/Textures/NaturalEarthII"),
+        );
+        if (!shouldStop()) {
+          viewer.imageryLayers.removeAll(true);
+          viewer.imageryLayers.addImageryProvider(introImagery);
+        }
       } catch (error) {
-        console.warn("OSM buildings unavailable", error);
+        console.warn("Intro imagery unavailable, using globe base color only", error);
       }
 
       const stopLoadingWhenReady = (queueLength: number) => {
@@ -115,10 +131,10 @@ export default function CesiumExperience() {
       };
 
       viewer.camera.setView({
-        destination: Cartesian3.fromDegrees(104.5, 7.5, 22_000_000),
+        destination: Cartesian3.fromDegrees(103.5, 6.5, 24_000_000),
         orientation: {
-          heading: CesiumMath.toRadians(5),
-          pitch: CesiumMath.toRadians(-34),
+          heading: CesiumMath.toRadians(8),
+          pitch: CesiumMath.toRadians(-38),
           roll: 0,
         },
       });
@@ -131,7 +147,15 @@ export default function CesiumExperience() {
         const elapsed = performance.now() - startTs;
         if (elapsed <= 2500) {
           try {
-            activeViewer.camera.rotate(Cartesian3.UNIT_Z, 0.00125);
+            const t = elapsed / 2500;
+            activeViewer.camera.setView({
+              destination: Cartesian3.fromDegrees(103.5, 6.5, 24_000_000),
+              orientation: {
+                heading: CesiumMath.toRadians(8 + t * 22),
+                pitch: CesiumMath.toRadians(-38),
+                roll: 0,
+              },
+            });
           } catch {
             return;
           }
@@ -157,6 +181,10 @@ export default function CesiumExperience() {
             if (shouldStop()) return;
             const completedViewer = viewer;
             if (!completedViewer) return;
+            setDashboardVisualMode(completedViewer).then((tileset) => {
+              buildingsTileset = tileset;
+            });
+            removeCameraBoundsListener = lockCameraToMalaysia(completedViewer);
             enterDashboard(completedViewer);
             setPhase("DASHBOARD");
           },
@@ -180,9 +208,9 @@ export default function CesiumExperience() {
         } catch {
           return;
         }
-        if (!picked) return;
+        if (!defined(picked)) return;
         const entity = (picked as { id?: Entity }).id;
-        if (entity) {
+        if (entity && !entity.id?.startsWith("threat-")) {
           activeViewer.selectedEntity = entity;
         }
       }, ScreenSpaceEventType.LEFT_CLICK);
@@ -200,9 +228,14 @@ export default function CesiumExperience() {
       isCleaningUp = true;
       removeIntroTick?.();
       removeTileLoadListener?.();
+      removeCameraBoundsListener?.();
       clickHandler?.destroy();
       if (viewer && !viewer.isDestroyed()) {
         viewer.camera.cancelFlight();
+        if (buildingsTileset) {
+          viewer.scene.primitives.remove(buildingsTileset);
+          buildingsTileset = undefined;
+        }
         viewer.destroy();
       }
       viewer = undefined;
@@ -221,16 +254,19 @@ export default function CesiumExperience() {
 }
 
 function enterDashboard(viewer: Viewer) {
-  const baseLayer = viewer.imageryLayers.get(0);
-  if (baseLayer) {
-    baseLayer.brightness = 0.95;
-    baseLayer.contrast = 1.1;
-    baseLayer.saturation = 1.05;
+  viewer.scene.globe.enableLighting = true;
+  viewer.scene.fog.enabled = true;
+  viewer.scene.fog.density = 0.00015;
+  if (viewer.scene.skyAtmosphere) {
+    viewer.scene.skyAtmosphere.show = false;
+  }
+  if (viewer.scene.sun) {
+    viewer.scene.sun.show = false;
+  }
+  if (viewer.scene.moon) {
+    viewer.scene.moon.show = false;
   }
 
-  viewer.scene.globe.enableLighting = false;
-
-  addTerrainGrid(viewer);
   addThreatEntities(viewer);
 
   viewer.entities.add({
@@ -247,6 +283,70 @@ function enterDashboard(viewer: Viewer) {
   });
 }
 
+async function setDashboardVisualMode(viewer: Viewer) {
+  if (viewer.isDestroyed()) return undefined;
+  viewer.imageryLayers.removeAll(true);
+
+  const blackBase = new SingleTileImageryProvider({
+    url: BLACK_PIXEL,
+    rectangle: Rectangle.MAX_VALUE,
+    tileWidth: 1,
+    tileHeight: 1,
+  });
+  viewer.imageryLayers.addImageryProvider(blackBase);
+
+  const darkRoads = new UrlTemplateImageryProvider({
+    url: "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png",
+    subdomains: ["a", "b", "c", "d"],
+    credit: new Credit("© OpenStreetMap © CARTO"),
+  });
+  const roadsLayer = viewer.imageryLayers.addImageryProvider(darkRoads);
+  roadsLayer.alpha = 0.9;
+  roadsLayer.brightness = 1.12;
+  roadsLayer.contrast = 2.05;
+  roadsLayer.saturation = 0.0;
+  roadsLayer.gamma = 1.12;
+  darkRoads.errorEvent.addEventListener((error) => {
+    console.warn("CARTO roads layer tile error", error);
+  });
+
+  const darkLabels = new UrlTemplateImageryProvider({
+    url: "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}.png",
+    subdomains: ["a", "b", "c", "d"],
+    credit: new Credit("© OpenStreetMap © CARTO"),
+  });
+  const labelsLayer = viewer.imageryLayers.addImageryProvider(darkLabels);
+  labelsLayer.alpha = 0.98;
+  labelsLayer.brightness = 1.35;
+  labelsLayer.contrast = 1.75;
+  labelsLayer.saturation = 0.0;
+  labelsLayer.gamma = 1.14;
+  darkLabels.errorEvent.addEventListener((error) => {
+    console.warn("CARTO labels layer tile error", error);
+  });
+
+  try {
+    const buildings = await createOsmBuildingsAsync();
+    if (viewer.isDestroyed()) return undefined;
+    buildings.show = true;
+    buildings.style = new Cesium3DTileStyle({
+      color: {
+        conditions: [
+          ["${feature['cesium#estimatedHeight']} >= 80", "color('rgba(95,255,255,0.52)')"],
+          ["${feature['cesium#estimatedHeight']} >= 30", "color('rgba(70,245,255,0.4)')"],
+          ["true", "color('rgba(55,230,245,0.28)')"],
+        ],
+      },
+    });
+    buildings.maximumScreenSpaceError = 8;
+    viewer.scene.primitives.add(buildings);
+    return buildings;
+  } catch (error) {
+    console.warn("OSM buildings unavailable in dashboard mode", error);
+    return undefined;
+  }
+}
+
 function addThreatEntities(viewer: Viewer) {
   for (const threat of threats) {
     viewer.entities.add({
@@ -258,8 +358,8 @@ function addThreatEntities(viewer: Viewer) {
       point: {
         color: markerColor(threat.probability),
         pixelSize: 11,
-        outlineColor: Color.BLACK.withAlpha(0.9),
-        outlineWidth: 2,
+        outlineColor: Color.WHITE.withAlpha(0.9),
+        outlineWidth: 2.5,
         heightReference: HeightReference.CLAMP_TO_GROUND,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
       },
@@ -267,44 +367,51 @@ function addThreatEntities(viewer: Viewer) {
   }
 }
 
-function addTerrainGrid(viewer: Viewer) {
-  const west = 101.55;
-  const east = 101.8;
-  const south = 3.0;
-  const north = 3.25;
-  const spacing = 0.015;
+function lockCameraToMalaysia(viewer: Viewer) {
+  const controller = viewer.scene.screenSpaceCameraController;
+  controller.minimumZoomDistance = MIN_CAMERA_HEIGHT_METERS;
+  controller.maximumZoomDistance = MAX_CAMERA_HEIGHT_METERS;
 
-  for (let lat = south; lat <= north; lat += spacing) {
-    viewer.entities.add({
-      polyline: {
-        positions: [
-          Cartesian3.fromDegrees(west, lat, 0),
-          Cartesian3.fromDegrees(east, lat, 0),
-        ],
-        clampToGround: true,
-        width: 0.7,
-        material: new PolylineGlowMaterialProperty({
-          color: Color.fromCssColorString("#66f58f").withAlpha(0.14),
-          glowPower: 0.03,
-        }),
-      },
-    });
-  }
+  let isClamping = false;
+  const onCameraChanged = () => {
+    if (isClamping || viewer.isDestroyed()) return;
 
-  for (let lon = west; lon <= east; lon += spacing) {
-    viewer.entities.add({
-      polyline: {
-        positions: [
-          Cartesian3.fromDegrees(lon, south, 0),
-          Cartesian3.fromDegrees(lon, north, 0),
-        ],
-        clampToGround: true,
-        width: 0.7,
-        material: new PolylineGlowMaterialProperty({
-          color: Color.fromCssColorString("#66f58f").withAlpha(0.14),
-          glowPower: 0.03,
-        }),
-      },
-    });
-  }
+    const cartographic = viewer.camera.positionCartographic;
+    if (!cartographic) return;
+
+    const lon = CesiumMath.toDegrees(cartographic.longitude);
+    const lat = CesiumMath.toDegrees(cartographic.latitude);
+    const height = cartographic.height;
+
+    const clampedLon = CesiumMath.clamp(lon, MALAYSIA_BOUNDS.west, MALAYSIA_BOUNDS.east);
+    const clampedLat = CesiumMath.clamp(lat, MALAYSIA_BOUNDS.south, MALAYSIA_BOUNDS.north);
+    const clampedHeight = CesiumMath.clamp(
+      height,
+      MIN_CAMERA_HEIGHT_METERS,
+      MAX_CAMERA_HEIGHT_METERS,
+    );
+
+    const needsClamp =
+      Math.abs(clampedLon - lon) > 1e-7 ||
+      Math.abs(clampedLat - lat) > 1e-7 ||
+      Math.abs(clampedHeight - height) > 0.01;
+
+    if (!needsClamp) return;
+
+    isClamping = true;
+    try {
+      viewer.camera.setView({
+        destination: Cartesian3.fromDegrees(clampedLon, clampedLat, clampedHeight),
+      });
+    } finally {
+      isClamping = false;
+    }
+  };
+
+  viewer.camera.changed.addEventListener(onCameraChanged);
+
+  return () => {
+    if (viewer.isDestroyed()) return;
+    viewer.camera.changed.removeEventListener(onCameraChanged);
+  };
 }
