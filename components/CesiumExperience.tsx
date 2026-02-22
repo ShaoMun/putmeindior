@@ -16,6 +16,7 @@ import {
   HeightReference,
   Ion,
   Math as CesiumMath,
+  PolylineGlowMaterialProperty,
   Rectangle,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
@@ -267,6 +268,7 @@ function enterDashboard(viewer: Viewer) {
     viewer.scene.moon.show = false;
   }
 
+  addTerrainSurfaceMesh(viewer);
   addThreatEntities(viewer);
 
   viewer.entities.add({
@@ -281,6 +283,78 @@ function enterDashboard(viewer: Viewer) {
       disableDepthTestDistance: Number.POSITIVE_INFINITY,
     },
   });
+}
+
+function addTerrainSurfaceMesh(viewer: Viewer) {
+  const west = 101.55;
+  const east = 101.8;
+  const south = 3.0;
+  const north = 3.25;
+  // Terrain-first mesh with much smaller cells (close to reference look).
+  // 0.0004 deg ~ 44m at KL latitude.
+  const denseStep = 0.0004;
+  const pointStep = 0.0004;
+  const waveAmp = 0.00016;
+
+  const meshBands = [
+    Color.fromCssColorString("#b8f6ff"),
+    Color.fromCssColorString("#ffd1a3"),
+    Color.fromCssColorString("#c4ff72"),
+  ];
+
+  const buildLatLine = (baseLat: number) => {
+    const positions: Cartesian3[] = [];
+    for (let lon = west; lon <= east; lon += pointStep) {
+      const wave =
+        Math.sin((lon - west) * 120 + baseLat * 67) * waveAmp +
+        Math.sin((lon - west) * 55 + baseLat * 29) * waveAmp * 0.6;
+      const lat = baseLat + wave;
+      positions.push(Cartesian3.fromRadians(CesiumMath.toRadians(lon), CesiumMath.toRadians(lat), 0));
+    }
+    return positions;
+  };
+
+  const buildLonLine = (baseLon: number) => {
+    const positions: Cartesian3[] = [];
+    for (let lat = south; lat <= north; lat += pointStep) {
+      const wave =
+        Math.cos((lat - south) * 118 + baseLon * 63) * waveAmp +
+        Math.sin((lat - south) * 51 + baseLon * 37) * waveAmp * 0.55;
+      const lon = baseLon + wave;
+      positions.push(Cartesian3.fromRadians(CesiumMath.toRadians(lon), CesiumMath.toRadians(lat), 0));
+    }
+    return positions;
+  };
+
+  for (let lat = south; lat <= north; lat += denseStep) {
+    const band = Math.floor(((lat - south) / (north - south)) * meshBands.length) % meshBands.length;
+    viewer.entities.add({
+      polyline: {
+        positions: buildLatLine(lat),
+        clampToGround: true,
+        width: 1.55,
+        material: new PolylineGlowMaterialProperty({
+          color: meshBands[band].withAlpha(0.34),
+          glowPower: 0.11,
+        }),
+      },
+    });
+  }
+
+  for (let lon = west; lon <= east; lon += denseStep) {
+    const band = Math.floor(((lon - west) / (east - west)) * meshBands.length) % meshBands.length;
+    viewer.entities.add({
+      polyline: {
+        positions: buildLonLine(lon),
+        clampToGround: true,
+        width: 1.55,
+        material: new PolylineGlowMaterialProperty({
+          color: meshBands[band].withAlpha(0.34),
+          glowPower: 0.11,
+        }),
+      },
+    });
+  }
 }
 
 async function setDashboardVisualMode(viewer: Viewer) {
