@@ -64,6 +64,7 @@ export default function CesiumExperience() {
     let removeIntroTick: (() => void) | undefined;
     let removeTileLoadListener: (() => void) | undefined;
     let removeCameraBoundsListener: (() => void) | undefined;
+    let removeTerrainMesh: (() => void) | undefined;
     let buildingsTileset: Cesium3DTileset | undefined;
     let isMounted = true;
     let isCleaningUp = false;
@@ -187,6 +188,7 @@ export default function CesiumExperience() {
             });
             removeCameraBoundsListener = lockCameraToMalaysia(completedViewer);
             enterDashboard(completedViewer);
+            removeTerrainMesh = addTerrainSurfaceMesh(completedViewer);
             setPhase("DASHBOARD");
           },
         });
@@ -230,6 +232,7 @@ export default function CesiumExperience() {
       removeIntroTick?.();
       removeTileLoadListener?.();
       removeCameraBoundsListener?.();
+      removeTerrainMesh?.();
       clickHandler?.destroy();
       if (viewer && !viewer.isDestroyed()) {
         viewer.camera.cancelFlight();
@@ -268,7 +271,6 @@ function enterDashboard(viewer: Viewer) {
     viewer.scene.moon.show = false;
   }
 
-  addTerrainSurfaceMesh(viewer);
   addThreatEntities(viewer);
 
   viewer.entities.add({
@@ -290,71 +292,253 @@ function addTerrainSurfaceMesh(viewer: Viewer) {
   const east = 101.8;
   const south = 3.0;
   const north = 3.25;
-  // Terrain-first mesh with much smaller cells (close to reference look).
-  // 0.0004 deg ~ 44m at KL latitude.
-  const denseStep = 0.0004;
-  const pointStep = 0.0004;
-  const waveAmp = 0.00016;
+  const denseStep = 0.0003;
+  const densePointStep = 0.0003;
+  const denseWaveAmp = 0.00014;
 
-  const meshBands = [
+  const bandColors = [
     Color.fromCssColorString("#b8f6ff"),
     Color.fromCssColorString("#ffd1a3"),
     Color.fromCssColorString("#c4ff72"),
   ];
 
-  const buildLatLine = (baseLat: number) => {
+  const buildLatLine = (
+    bounds: { west: number; east: number; south: number; north: number },
+    baseLat: number,
+    pointStep: number,
+    waveAmp: number,
+  ) => {
     const positions: Cartesian3[] = [];
-    for (let lon = west; lon <= east; lon += pointStep) {
+    for (let lon = bounds.west; lon <= bounds.east; lon += pointStep) {
       const wave =
-        Math.sin((lon - west) * 120 + baseLat * 67) * waveAmp +
-        Math.sin((lon - west) * 55 + baseLat * 29) * waveAmp * 0.6;
+        Math.sin((lon - bounds.west) * 120 + baseLat * 67) * waveAmp +
+        Math.sin((lon - bounds.west) * 55 + baseLat * 29) * waveAmp * 0.6;
       const lat = baseLat + wave;
       positions.push(Cartesian3.fromRadians(CesiumMath.toRadians(lon), CesiumMath.toRadians(lat), 0));
     }
     return positions;
   };
 
-  const buildLonLine = (baseLon: number) => {
+  const buildLonLine = (
+    bounds: { west: number; east: number; south: number; north: number },
+    baseLon: number,
+    pointStep: number,
+    waveAmp: number,
+  ) => {
     const positions: Cartesian3[] = [];
-    for (let lat = south; lat <= north; lat += pointStep) {
+    for (let lat = bounds.south; lat <= bounds.north; lat += pointStep) {
       const wave =
-        Math.cos((lat - south) * 118 + baseLon * 63) * waveAmp +
-        Math.sin((lat - south) * 51 + baseLon * 37) * waveAmp * 0.55;
+        Math.cos((lat - bounds.south) * 118 + baseLon * 63) * waveAmp +
+        Math.sin((lat - bounds.south) * 51 + baseLon * 37) * waveAmp * 0.55;
       const lon = baseLon + wave;
       positions.push(Cartesian3.fromRadians(CesiumMath.toRadians(lon), CesiumMath.toRadians(lat), 0));
     }
     return positions;
   };
 
-  for (let lat = south; lat <= north; lat += denseStep) {
-    const band = Math.floor(((lat - south) / (north - south)) * meshBands.length) % meshBands.length;
-    viewer.entities.add({
-      polyline: {
-        positions: buildLatLine(lat),
-        clampToGround: true,
-        width: 1.55,
-        material: new PolylineGlowMaterialProperty({
-          color: meshBands[band].withAlpha(0.34),
-          glowPower: 0.11,
-        }),
-      },
-    });
-  }
+  const addLayer = (
+    bounds: { west: number; east: number; south: number; north: number },
+    step: number,
+    pointStep: number,
+    waveAmp: number,
+    width: number,
+    alpha: number,
+    glow: number,
+  ) => {
+    const entities: Entity[] = [];
 
-  for (let lon = west; lon <= east; lon += denseStep) {
-    const band = Math.floor(((lon - west) / (east - west)) * meshBands.length) % meshBands.length;
-    viewer.entities.add({
-      polyline: {
-        positions: buildLonLine(lon),
-        clampToGround: true,
-        width: 1.55,
-        material: new PolylineGlowMaterialProperty({
-          color: meshBands[band].withAlpha(0.34),
-          glowPower: 0.11,
-        }),
-      },
-    });
-  }
+    for (let lat = bounds.south; lat <= bounds.north; lat += step) {
+      const band =
+        Math.floor(
+          ((lat - bounds.south) / Math.max(0.0001, bounds.north - bounds.south)) * bandColors.length,
+        ) % bandColors.length;
+      const entity = viewer.entities.add({
+        polyline: {
+          positions: buildLatLine(bounds, lat, pointStep, waveAmp),
+          clampToGround: true,
+          width,
+          material: new PolylineGlowMaterialProperty({
+            color: bandColors[band].withAlpha(alpha),
+            glowPower: glow,
+          }),
+        },
+      });
+      entities.push(entity);
+    }
+
+    for (let lon = bounds.west; lon <= bounds.east; lon += step) {
+      const band =
+        Math.floor(
+          ((lon - bounds.west) / Math.max(0.0001, bounds.east - bounds.west)) * bandColors.length,
+        ) % bandColors.length;
+      const entity = viewer.entities.add({
+        polyline: {
+          positions: buildLonLine(bounds, lon, pointStep, waveAmp),
+          clampToGround: true,
+          width,
+          material: new PolylineGlowMaterialProperty({
+            color: bandColors[band].withAlpha(alpha),
+            glowPower: glow,
+          }),
+        },
+      });
+      entities.push(entity);
+    }
+
+    return entities;
+  };
+
+  type MeshLod = "none" | "dense";
+
+  const meshCache = new Map<string, Entity[]>();
+  const cacheOrder: string[] = [];
+  const maxCacheChunks = 6;
+  let activeKey: string | null = null;
+
+  const getViewCenter = () => {
+    const rect = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid);
+    if (!rect) {
+      return {
+        lon: KL_LON,
+        lat: KL_LAT,
+        lonSpan: 999,
+        latSpan: 999,
+      };
+    }
+    return {
+      lon: CesiumMath.toDegrees((rect.west + rect.east) * 0.5),
+      lat: CesiumMath.toDegrees((rect.south + rect.north) * 0.5),
+      lonSpan: Math.abs(CesiumMath.toDegrees(rect.east - rect.west)),
+      latSpan: Math.abs(CesiumMath.toDegrees(rect.north - rect.south)),
+    };
+  };
+
+  const quantize = (value: number, step: number) => Math.round(value / step) * step;
+
+  const chunkKeyFromCenter = (lon: number, lat: number) =>
+    `${quantize(lon, 0.01).toFixed(2)}:${quantize(lat, 0.01).toFixed(2)}`;
+
+  const chunkBoundsFromCenter = (lon: number, lat: number) => {
+    const halfLon = 0.02;
+    const halfLat = 0.02;
+    return {
+      west: CesiumMath.clamp(lon - halfLon, west, east),
+      east: CesiumMath.clamp(lon + halfLon, west, east),
+      south: CesiumMath.clamp(lat - halfLat, south, north),
+      north: CesiumMath.clamp(lat + halfLat, south, north),
+    };
+  };
+
+  const hideChunk = (key: string | null) => {
+    if (!key) return;
+    const entities = meshCache.get(key);
+    if (!entities) return;
+    for (const entity of entities) entity.show = false;
+  };
+
+  const showChunk = (key: string) => {
+    const entities = meshCache.get(key);
+    if (!entities) return;
+    for (const entity of entities) entity.show = true;
+  };
+
+  const evictOldestChunk = () => {
+    while (cacheOrder.length > maxCacheChunks) {
+      const oldest = cacheOrder.shift();
+      if (!oldest) return;
+      if (oldest === activeKey) {
+        cacheOrder.push(oldest);
+        return;
+      }
+      const entities = meshCache.get(oldest);
+      if (!entities) continue;
+      for (const entity of entities) viewer.entities.remove(entity);
+      meshCache.delete(oldest);
+    }
+  };
+
+  const ensureDenseChunk = (lon: number, lat: number) => {
+    const key = chunkKeyFromCenter(lon, lat);
+    if (meshCache.has(key)) return key;
+
+    const bounds = chunkBoundsFromCenter(lon, lat);
+    if (bounds.east - bounds.west <= 0.0001 || bounds.north - bounds.south <= 0.0001) return null;
+
+    const entities = addLayer(bounds, denseStep, densePointStep, denseWaveAmp, 1.45, 0.32, 0.1);
+    for (const entity of entities) entity.show = false;
+    meshCache.set(key, entities);
+    cacheOrder.push(key);
+    evictOldestChunk();
+    return key;
+  };
+
+  const pickLod = (): MeshLod => {
+    const height = viewer.camera.positionCartographic.height;
+    const view = getViewCenter();
+
+    // Dense mesh only when truly close:
+    // 1) camera low enough, and
+    // 2) visible ground footprint is narrow.
+    const isCloseHeight = height <= 8_000;
+    const isCloseFootprint = view.lonSpan <= 0.09 && view.latSpan <= 0.09;
+
+    if (isCloseHeight && isCloseFootprint) return "dense";
+    return "none";
+  };
+
+  let currentLod: MeshLod | null = null;
+  let regenTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const buildLod = (lod: MeshLod) => {
+    if (lod === "dense") {
+      const view = getViewCenter();
+      const key = ensureDenseChunk(view.lon, view.lat);
+      if (!key) {
+        hideChunk(activeKey);
+        activeKey = null;
+        return;
+      }
+      if (activeKey !== key) {
+        hideChunk(activeKey);
+        showChunk(key);
+        activeKey = key;
+      }
+    } else {
+      hideChunk(activeKey);
+      activeKey = null;
+    }
+  };
+
+  const updateLod = () => {
+    if (viewer.isDestroyed()) return;
+    const nextLod = pickLod();
+    if (nextLod === currentLod) return;
+    currentLod = nextLod;
+    buildLod(nextLod);
+  };
+
+  const scheduleLodUpdate = () => {
+    if (regenTimer) clearTimeout(regenTimer);
+    regenTimer = setTimeout(updateLod, 140);
+  };
+
+  viewer.camera.changed.addEventListener(scheduleLodUpdate);
+  updateLod();
+
+  return () => {
+    if (!viewer.isDestroyed()) {
+      viewer.camera.changed.removeEventListener(scheduleLodUpdate);
+      if (regenTimer) clearTimeout(regenTimer);
+      for (const entities of meshCache.values()) {
+        for (const entity of entities) {
+          viewer.entities.remove(entity);
+        }
+      }
+      meshCache.clear();
+      cacheOrder.length = 0;
+      activeKey = null;
+    }
+  };
 }
 
 async function setDashboardVisualMode(viewer: Viewer) {
