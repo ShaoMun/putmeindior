@@ -9,6 +9,7 @@ import {
   Cesium3DTileStyle,
   Color,
   Credit,
+  EllipsoidTerrainProvider,
   createOsmBuildingsAsync,
   buildModuleUrl,
   defined,
@@ -39,7 +40,16 @@ const MALAYSIA_BOUNDS = {
   north: 7.5,
 };
 const MIN_CAMERA_HEIGHT_METERS = 120;
-const MAX_CAMERA_HEIGHT_METERS = 2_200_000;
+const MAX_CAMERA_HEIGHT_METERS = 1_250_000;
+const FAR_RECENTER_HEIGHT_METERS = 900_000;
+const MALAYSIA_CENTER_LON = (MALAYSIA_BOUNDS.west + MALAYSIA_BOUNDS.east) * 0.5;
+const MALAYSIA_CENTER_LAT = (MALAYSIA_BOUNDS.south + MALAYSIA_BOUNDS.north) * 0.5;
+const MALAYSIA_IMAGERY_RECTANGLE = Rectangle.fromDegrees(
+  MALAYSIA_BOUNDS.west,
+  MALAYSIA_BOUNDS.south,
+  MALAYSIA_BOUNDS.east,
+  MALAYSIA_BOUNDS.north,
+);
 const BLACK_PIXEL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5l9VUAAAAASUVORK5CYII=";
 
@@ -91,9 +101,8 @@ export default function CesiumExperience() {
       });
       if (shouldStop()) return;
 
-      const terrainProvider = await createWorldTerrainAsync();
-      if (shouldStop()) return;
-      viewer.terrainProvider = terrainProvider;
+      // Keep intro on ellipsoid terrain to avoid global terrain tile requests.
+      viewer.terrainProvider = new EllipsoidTerrainProvider();
       viewer.scene.globe.baseColor = Color.fromCssColorString("#4a6073");
       viewer.scene.globe.enableLighting = false;
       if (viewer.scene.skyAtmosphere) {
@@ -112,6 +121,7 @@ export default function CesiumExperience() {
       } catch (error) {
         console.warn("Intro imagery unavailable, using globe base color only", error);
       }
+      if (shouldStop()) return;
 
       const stopLoadingWhenReady = (queueLength: number) => {
         if (
@@ -292,8 +302,8 @@ function addTerrainSurfaceMesh(viewer: Viewer) {
   const east = 101.8;
   const south = 3.0;
   const north = 3.25;
-  const denseStep = 0.0003;
-  const densePointStep = 0.0003;
+  const denseStep = 0.0005;
+  const densePointStep = 0.0005;
   const denseWaveAmp = 0.00014;
 
   const bandColors = [
@@ -543,6 +553,12 @@ function addTerrainSurfaceMesh(viewer: Viewer) {
 
 async function setDashboardVisualMode(viewer: Viewer) {
   if (viewer.isDestroyed()) return undefined;
+
+  // Start World Terrain only once we are already focused on KL/Malaysia.
+  const terrainProvider = await createWorldTerrainAsync();
+  if (viewer.isDestroyed()) return undefined;
+  viewer.terrainProvider = terrainProvider;
+
   viewer.imageryLayers.removeAll(true);
 
   const blackBase = new SingleTileImageryProvider({
@@ -556,6 +572,7 @@ async function setDashboardVisualMode(viewer: Viewer) {
   const darkRoads = new UrlTemplateImageryProvider({
     url: "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png",
     subdomains: ["a", "b", "c", "d"],
+    rectangle: MALAYSIA_IMAGERY_RECTANGLE,
     credit: new Credit("© OpenStreetMap © CARTO"),
   });
   const roadsLayer = viewer.imageryLayers.addImageryProvider(darkRoads);
@@ -571,6 +588,7 @@ async function setDashboardVisualMode(viewer: Viewer) {
   const darkLabels = new UrlTemplateImageryProvider({
     url: "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}.png",
     subdomains: ["a", "b", "c", "d"],
+    rectangle: MALAYSIA_IMAGERY_RECTANGLE,
     credit: new Credit("© OpenStreetMap © CARTO"),
   });
   const labelsLayer = viewer.imageryLayers.addImageryProvider(darkLabels);
@@ -649,17 +667,32 @@ function lockCameraToMalaysia(viewer: Viewer) {
       MAX_CAMERA_HEIGHT_METERS,
     );
 
+    const forceCenter = clampedHeight >= FAR_RECENTER_HEIGHT_METERS;
+    const targetLon = forceCenter ? MALAYSIA_CENTER_LON : clampedLon;
+    const targetLat = forceCenter ? MALAYSIA_CENTER_LAT : clampedLat;
+    const targetHeight = forceCenter ? FAR_RECENTER_HEIGHT_METERS : clampedHeight;
+    const targetHeading = forceCenter ? 0 : viewer.camera.heading;
+    const targetPitch = forceCenter
+      ? CesiumMath.toRadians(-89)
+      : viewer.camera.pitch;
+
     const needsClamp =
-      Math.abs(clampedLon - lon) > 1e-7 ||
-      Math.abs(clampedLat - lat) > 1e-7 ||
-      Math.abs(clampedHeight - height) > 0.01;
+      Math.abs(targetLon - lon) > 1e-7 ||
+      Math.abs(targetLat - lat) > 1e-7 ||
+      Math.abs(targetHeight - height) > 0.01 ||
+      (forceCenter && Math.abs(viewer.camera.pitch - targetPitch) > 1e-4);
 
     if (!needsClamp) return;
 
     isClamping = true;
     try {
       viewer.camera.setView({
-        destination: Cartesian3.fromDegrees(clampedLon, clampedLat, clampedHeight),
+        destination: Cartesian3.fromDegrees(targetLon, targetLat, targetHeight),
+        orientation: {
+          heading: targetHeading,
+          pitch: targetPitch,
+          roll: 0,
+        },
       });
     } finally {
       isClamping = false;
