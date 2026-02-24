@@ -9,9 +9,7 @@ import {
   Cesium3DTileStyle,
   Color,
   Credit,
-  EllipsoidTerrainProvider,
   createOsmBuildingsAsync,
-  buildModuleUrl,
   defined,
   createWorldTerrainAsync,
   HeightReference,
@@ -22,14 +20,13 @@ import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   SingleTileImageryProvider,
-  TileMapServiceImageryProvider,
   UrlTemplateImageryProvider,
   Viewer,
   type Entity,
 } from "cesium";
 import { threats, threatColor } from "@/lib/threats";
 
-type Phase = "GLOBE_INTRO" | "FLY_TO_KL" | "DASHBOARD";
+type Phase = "LOADING" | "DASHBOARD";
 
 const KL_LAT = 3.139;
 const KL_LON = 101.6869;
@@ -61,7 +58,7 @@ function markerColor(probability: number) {
 
 export default function CesiumExperience() {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [phase, setPhase] = useState<Phase>("GLOBE_INTRO");
+  const [phase, setPhase] = useState<Phase>("LOADING");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -70,7 +67,6 @@ export default function CesiumExperience() {
 
     let viewer: Viewer | undefined;
     let clickHandler: ScreenSpaceEventHandler | undefined;
-    let removeIntroTick: (() => void) | undefined;
     let removeTileLoadListener: (() => void) | undefined;
     let removeCameraBoundsListener: (() => void) | undefined;
     let removeTerrainMesh: (() => void) | undefined;
@@ -100,27 +96,15 @@ export default function CesiumExperience() {
       });
       if (shouldStop()) return;
 
-      // Keep intro on ellipsoid terrain to avoid global terrain tile requests.
-      viewer.terrainProvider = new EllipsoidTerrainProvider();
-      viewer.scene.globe.baseColor = Color.fromCssColorString("#4a6073");
-      viewer.scene.globe.enableLighting = false;
-      if (viewer.scene.skyAtmosphere) {
-        viewer.scene.skyAtmosphere.show = true;
-      }
-
-      // Ensure Earth is visible on first load even if external imagery is unavailable.
-      try {
-        const introImagery = await TileMapServiceImageryProvider.fromUrl(
-          buildModuleUrl("Assets/Textures/NaturalEarthII"),
-        );
-        if (!shouldStop()) {
-          viewer.imageryLayers.removeAll(true);
-          viewer.imageryLayers.addImageryProvider(introImagery);
-        }
-      } catch (error) {
-        console.warn("Intro imagery unavailable, using globe base color only", error);
-      }
-      if (shouldStop()) return;
+      // Start directly in dashboard mode – no globe intro, no fly animation.
+      viewer.camera.setView({
+        destination: Cartesian3.fromDegrees(KL_LON, KL_LAT, 120_000),
+        orientation: {
+          heading: CesiumMath.toRadians(0),
+          pitch: CesiumMath.toRadians(-55),
+          roll: 0,
+        },
+      });
 
       const stopLoadingWhenReady = (queueLength: number) => {
         if (
@@ -141,73 +125,17 @@ export default function CesiumExperience() {
         viewer.scene.globe.tileLoadProgressEvent.removeEventListener(stopLoadingWhenReady);
       };
 
-      viewer.camera.setView({
-        destination: Cartesian3.fromDegrees(103.5, 6.5, 24_000_000),
-        orientation: {
-          heading: CesiumMath.toRadians(8),
-          pitch: CesiumMath.toRadians(-38),
-          roll: 0,
-        },
-      });
-
-      const startTs = performance.now();
-      const onIntroTick = () => {
-        if (shouldStop()) return;
-        const activeViewer = viewer;
-        if (!activeViewer) return;
-        const elapsed = performance.now() - startTs;
-        if (elapsed <= 2500) {
-          try {
-            const t = elapsed / 2500;
-            activeViewer.camera.setView({
-              destination: Cartesian3.fromDegrees(103.5, 6.5, 24_000_000),
-              orientation: {
-                heading: CesiumMath.toRadians(8 + t * 22),
-                pitch: CesiumMath.toRadians(-38),
-                roll: 0,
-              },
-            });
-          } catch {
-            return;
-          }
-          return;
-        }
-
-        if (removeIntroTick) {
-          removeIntroTick();
-          removeIntroTick = undefined;
-        }
-
-        setPhase("FLY_TO_KL");
-
-        activeViewer.camera.flyTo({
-          destination: Cartesian3.fromDegrees(KL_LON, KL_LAT, 12_000),
-          duration: 3.5,
-          orientation: {
-            heading: CesiumMath.toRadians(20),
-            pitch: CesiumMath.toRadians(-35),
-            roll: 0,
-          },
-          complete: () => {
-            if (shouldStop()) return;
-            const completedViewer = viewer;
-            if (!completedViewer) return;
-            setDashboardVisualMode(completedViewer).then((tileset) => {
-              buildingsTileset = tileset;
-            });
-            removeCameraBoundsListener = lockCameraToMalaysia(completedViewer);
-            enterDashboard(completedViewer);
-            removeTerrainMesh = addTerrainSurfaceMesh(completedViewer);
-            setPhase("DASHBOARD");
-          },
+      // Immediately set up dashboard visual mode.
+      if (!shouldStop()) {
+        const v = viewer;
+        setDashboardVisualMode(v).then((tileset) => {
+          if (!shouldStop()) buildingsTileset = tileset;
         });
-      };
-
-      viewer.clock.onTick.addEventListener(onIntroTick);
-      removeIntroTick = () => {
-        if (!viewer || viewer.isDestroyed()) return;
-        viewer.clock.onTick.removeEventListener(onIntroTick);
-      };
+        removeCameraBoundsListener = lockCameraToMalaysia(v);
+        enterDashboard(v);
+        removeTerrainMesh = addTerrainSurfaceMesh(v);
+        setPhase("DASHBOARD");
+      }
 
       clickHandler = new ScreenSpaceEventHandler(viewer.scene.canvas);
       clickHandler.setInputAction((movement: { position: unknown }) => {
@@ -238,7 +166,6 @@ export default function CesiumExperience() {
     return () => {
       isMounted = false;
       isCleaningUp = true;
-      removeIntroTick?.();
       removeTileLoadListener?.();
       removeCameraBoundsListener?.();
       removeTerrainMesh?.();
@@ -264,6 +191,7 @@ export default function CesiumExperience() {
       <div className={`hud-overlay ${phase === "DASHBOARD" ? "active" : ""}`} />
     </main>
   );
+
 }
 
 function enterDashboard(viewer: Viewer) {
