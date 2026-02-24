@@ -35,7 +35,7 @@ const KL_LAT = 3.139;
 const KL_LON = 101.6869;
 const MALAYSIA_BOUNDS = {
   west: 99.5,
-  east: 119.6,
+  east: 109.4,
   south: 0.8,
   north: 7.5,
 };
@@ -44,14 +44,13 @@ const MAX_CAMERA_HEIGHT_METERS = 1_250_000;
 const FAR_RECENTER_HEIGHT_METERS = 900_000;
 const MALAYSIA_CENTER_LON = (MALAYSIA_BOUNDS.west + MALAYSIA_BOUNDS.east) * 0.5;
 const MALAYSIA_CENTER_LAT = (MALAYSIA_BOUNDS.south + MALAYSIA_BOUNDS.north) * 0.5;
-const MALAYSIA_IMAGERY_RECTANGLE = Rectangle.fromDegrees(
-  MALAYSIA_BOUNDS.west,
-  MALAYSIA_BOUNDS.south,
-  MALAYSIA_BOUNDS.east,
-  MALAYSIA_BOUNDS.north,
-);
+const WEST_MALAYSIA_IMAGERY_RECTANGLE = Rectangle.fromDegrees(99.5, 0.8, 104.3, 7.5);
+const SOUTH_CHINA_SEA_IMAGERY_RECTANGLE = Rectangle.fromDegrees(104.3, 1.4, 109.4, 7.2);
+const LAND_IMAGERY_RECTANGLES = [WEST_MALAYSIA_IMAGERY_RECTANGLE];
 const BLACK_PIXEL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5l9VUAAAAASUVORK5CYII=";
+const OCEAN_TILE =
+  "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='4' height='4' fill='%23145f93'/%3E%3C/svg%3E";
 
 function markerColor(probability: number) {
   const bucket = threatColor(probability);
@@ -558,9 +557,11 @@ async function setDashboardVisualMode(viewer: Viewer) {
   const terrainProvider = await createWorldTerrainAsync();
   if (viewer.isDestroyed()) return undefined;
   viewer.terrainProvider = terrainProvider;
+  viewer.scene.globe.baseColor = Color.fromCssColorString("#041324");
 
   viewer.imageryLayers.removeAll(true);
 
+  // Global black base to prevent non-Malaysia areas from rendering textured land/water.
   const blackBase = new SingleTileImageryProvider({
     url: BLACK_PIXEL,
     rectangle: Rectangle.MAX_VALUE,
@@ -569,37 +570,53 @@ async function setDashboardVisualMode(viewer: Viewer) {
   });
   viewer.imageryLayers.addImageryProvider(blackBase);
 
-  const darkRoads = new UrlTemplateImageryProvider({
-    url: "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png",
+  // Bounded base windows for land only.
+  const malaysiaBaseWest = new UrlTemplateImageryProvider({
+    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png",
     subdomains: ["a", "b", "c", "d"],
-    rectangle: MALAYSIA_IMAGERY_RECTANGLE,
+    rectangle: WEST_MALAYSIA_IMAGERY_RECTANGLE,
     credit: new Credit("© OpenStreetMap © CARTO"),
   });
-  const roadsLayer = viewer.imageryLayers.addImageryProvider(darkRoads);
-  roadsLayer.alpha = 0.9;
-  roadsLayer.brightness = 1.12;
-  roadsLayer.contrast = 2.05;
-  roadsLayer.saturation = 0.0;
-  roadsLayer.gamma = 1.12;
-  darkRoads.errorEvent.addEventListener((error) => {
-    console.warn("CARTO roads layer tile error", error);
-  });
+  for (const provider of [malaysiaBaseWest]) {
+    const layer = viewer.imageryLayers.addImageryProvider(provider);
+    layer.alpha = 0.92;
+    layer.brightness = 0.38;
+    layer.contrast = 1.1;
+    layer.saturation = 0.0;
+    layer.gamma = 1.0;
+  }
 
-  const darkLabels = new UrlTemplateImageryProvider({
-    url: "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}.png",
-    subdomains: ["a", "b", "c", "d"],
-    rectangle: MALAYSIA_IMAGERY_RECTANGLE,
-    credit: new Credit("© OpenStreetMap © CARTO"),
-  });
-  const labelsLayer = viewer.imageryLayers.addImageryProvider(darkLabels);
-  labelsLayer.alpha = 0.98;
-  labelsLayer.brightness = 1.35;
-  labelsLayer.contrast = 1.75;
-  labelsLayer.saturation = 0.0;
-  labelsLayer.gamma = 1.14;
-  darkLabels.errorEvent.addEventListener((error) => {
-    console.warn("CARTO labels layer tile error", error);
-  });
+  const southChinaSeaLayer = viewer.imageryLayers.addImageryProvider(
+    new SingleTileImageryProvider({
+      url: OCEAN_TILE,
+      rectangle: SOUTH_CHINA_SEA_IMAGERY_RECTANGLE,
+      tileWidth: 4,
+      tileHeight: 4,
+    }),
+  );
+  southChinaSeaLayer.alpha = 1.0;
+  southChinaSeaLayer.brightness = 1.06;
+  southChinaSeaLayer.contrast = 1.3;
+  southChinaSeaLayer.saturation = 1.35;
+  southChinaSeaLayer.gamma = 1.0;
+
+  for (const rectangle of LAND_IMAGERY_RECTANGLES) {
+    const darkLabels = new UrlTemplateImageryProvider({
+      url: "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}.png",
+      subdomains: ["a", "b", "c", "d"],
+      rectangle,
+      credit: new Credit("© OpenStreetMap © CARTO"),
+    });
+    const labelsLayer = viewer.imageryLayers.addImageryProvider(darkLabels);
+    labelsLayer.alpha = 0.92;
+    labelsLayer.brightness = 1.52;
+    labelsLayer.contrast = 2.05;
+    labelsLayer.saturation = 0.0;
+    labelsLayer.gamma = 1.2;
+    darkLabels.errorEvent.addEventListener((error) => {
+      console.warn("CARTO labels layer tile error", error);
+    });
+  }
 
   try {
     const buildings = await createOsmBuildingsAsync();
