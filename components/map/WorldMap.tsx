@@ -46,6 +46,7 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
   const [visible, setVisible] = useState(false);
   const [landFeatures, setLandFeatures] = useState<any[]>([]);
   const [hoveredAsia, setHoveredAsia] = useState(false);
+  const [now, setNow] = useState<Date | null>(null);
   
   // Animation state
   const [tick, setTick] = useState(0);
@@ -57,6 +58,7 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
     const interval = setInterval(() => {
       tickRef.current += 1;
       setTick(tickRef.current);
+      setNow(new Date());
     }, 60);
 
     // Fetch topojson countries for realistic map with borders
@@ -109,6 +111,10 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
     return 1 + Math.sin((tick + offset) * 0.18) * 0.4;
   };
 
+  const timeString = now 
+    ? now.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'short' }).toUpperCase()
+    : "";
+
   return (
     <div
       style={{
@@ -124,9 +130,10 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
       {/* Header bar */}
       <div
         style={{
+          position: "relative",
           display: "flex",
           alignItems: "center",
-          gap: "1.5rem",
+          justifyContent: "space-between",
           padding: "0.8rem 1.8rem",
           borderBottom: "1px solid rgba(74, 158, 255, 0.15)",
           background: "linear-gradient(90deg, rgba(6,20,40,0.9), rgba(2,5,10,0.95))",
@@ -134,53 +141,32 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
           flexShrink: 0,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-          <div
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: "50%",
-              background: "#3ee96a",
-              boxShadow: "0 0 12px #3ee96a",
-            }}
-          />
-          <span
-            style={{
-              fontSize: "0.75rem",
-              fontWeight: 800,
-              letterSpacing: "0.2em",
-              color: "#3ee96a",
-            }}
-          >
-            ACTIVE
-          </span>
-        </div>
         <span
           style={{
-            fontSize: "0.9rem",
-            fontWeight: 700,
-            letterSpacing: "0.25em",
+            fontSize: "1.1rem",
+            fontWeight: 800,
+            letterSpacing: "0.3em",
             color: "#e2f1ff",
             textShadow: "0 0 8px rgba(226, 241, 255, 0.4)",
           }}
         >
-          GLOBAL THREAT MONITOR
+          JARVIS
         </span>
-        <div style={{ marginLeft: "auto", display: "flex", gap: "2rem" }}>
-          {["SATELLITE DOWNLINK", "DEFCON 4", "SYS OK"].map((label) => (
-            <span
-              key={label}
-              style={{
-                fontSize: "0.7rem",
-                letterSpacing: "0.15em",
-                color: "#6b87a3",
-                fontWeight: 600,
-              }}
-            >
-              {label}
-            </span>
-          ))}
-        </div>
+        <span
+          style={{
+            position: "absolute",
+            left: "50%",
+            transform: "translateX(-50%)",
+            fontSize: "0.8rem",
+            letterSpacing: "0.15em",
+            color: "#a0b2c1",
+            fontWeight: 600,
+            textTransform: "uppercase",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {timeString}
+        </span>
       </div>
 
       {/* Map container */}
@@ -254,7 +240,8 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
                 x={cx}
                 y={cy + offsetY}
                 textAnchor="middle"
-                fill="rgba(100, 130, 150, 0.45)"
+                fill="#ffffff"
+                opacity={0.9}
                 fontSize="9"
                 fontWeight="600"
                 fontFamily="monospace"
@@ -282,19 +269,19 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
               filter="url(#glow-map)"
               style={{ transition: "all 0.3s ease" }}
             />
-            {asiaCenter && (
+            {asiaCenter && hoveredAsia && (
               <text
                 x={asiaCenter[0] - 10}
                 y={asiaCenter[1] - 40}
-                fill={hoveredAsia ? "#fff" : "rgba(150, 210, 255, 0.7)"}
+                fill="#fff"
                 fontSize="11"
                 fontWeight="700"
                 letterSpacing="4"
                 pointerEvents="none"
-                filter={hoveredAsia ? "url(#glow-map)" : "none"}
+                filter="url(#glow-map)"
                 style={{ transition: "fill 0.3s" }}
               >
-                ASIAN THEATER {hoveredAsia && ">> CLICK TO DEPLOY"}
+                CLICK TO DEPLOY
               </text>
             )}
           </g>

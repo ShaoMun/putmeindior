@@ -3,25 +3,24 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 
-type AppPhase = "EARTH_INTRO" | "UNIVERSE_MAP" | "CESIUM";
+type AppPhase = "EARTH_INTRO" | "WORLD_MAP" | "MALAYSIA";
 
-const EarthIntro = dynamic(() => import("@/components/EarthIntro"), { ssr: false });
-const UniverseMap = dynamic(() => import("@/components/UniverseMap"), { ssr: false });
-const CesiumExperience = dynamic(() => import("@/components/CesiumExperience"), { ssr: false });
+const EarthIntro = dynamic(() => import("@/components/earth/EarthIntro"), { ssr: false });
+const WorldMap = dynamic(() => import("@/components/map/WorldMap"), { ssr: false });
+const MalaysiaMap = dynamic(() => import("@/components/malaysia/MalaysiaMap"), { ssr: false });
 
 export default function Home() {
   const [phase, setPhase] = useState<AppPhase>("EARTH_INTRO");
-  const [cesiumMounted, setCesiumMounted] = useState(false);
+  const [malaysiaMounted, setMalaysiaMounted] = useState(false);
 
   const handleEarthZoomComplete = () => {
-    setPhase("UNIVERSE_MAP");
+    setPhase("WORLD_MAP");
   };
 
   const handleRegionClick = (region: string) => {
     if (region === "asia") {
-      // Pre-mount Cesium, then transition
-      setCesiumMounted(true);
-      setTimeout(() => setPhase("CESIUM"), 60);
+      setMalaysiaMounted(true);
+      setTimeout(() => setPhase("MALAYSIA"), 60);
     }
   };
 
@@ -35,7 +34,7 @@ export default function Home() {
         background: "#020408",
       }}
     >
-      {/* Layer 1: Earth Intro (Three.js) */}
+      {/* Phase 1: Three.js Earth */}
       <div
         style={{
           position: "absolute",
@@ -51,34 +50,34 @@ export default function Home() {
         )}
       </div>
 
-      {/* Layer 2: Universe Map */}
+      {/* Phase 2: World Map */}
       <div
         style={{
           position: "absolute",
           inset: 0,
-          opacity: phase === "UNIVERSE_MAP" ? 1 : 0,
-          pointerEvents: phase === "UNIVERSE_MAP" ? "auto" : "none",
+          opacity: phase === "WORLD_MAP" ? 1 : 0,
+          pointerEvents: phase === "WORLD_MAP" ? "auto" : "none",
           transition: "opacity 0.7s ease",
-          zIndex: phase === "UNIVERSE_MAP" ? 30 : 10,
+          zIndex: phase === "WORLD_MAP" ? 30 : 10,
         }}
       >
-        {(phase === "UNIVERSE_MAP" || phase === "CESIUM") && (
-          <UniverseMap onRegionClick={handleRegionClick} />
+        {(phase === "WORLD_MAP" || phase === "MALAYSIA") && (
+          <WorldMap onRegionClick={handleRegionClick} />
         )}
       </div>
 
-      {/* Layer 3: Cesium Malaysia Dashboard */}
+      {/* Phase 3: Malaysia Cesium */}
       <div
         style={{
           position: "absolute",
           inset: 0,
-          opacity: phase === "CESIUM" ? 1 : 0,
-          pointerEvents: phase === "CESIUM" ? "auto" : "none",
+          opacity: phase === "MALAYSIA" ? 1 : 0,
+          pointerEvents: phase === "MALAYSIA" ? "auto" : "none",
           transition: "opacity 0.8s ease",
-          zIndex: phase === "CESIUM" ? 30 : 5,
+          zIndex: phase === "MALAYSIA" ? 30 : 5,
         }}
       >
-        {cesiumMounted && <CesiumExperience />}
+        {malaysiaMounted && <MalaysiaMap />}
       </div>
     </main>
   );

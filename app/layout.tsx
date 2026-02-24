@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "KL Threat Surface",
-  description: "Cesium-powered Kuala Lumpur threat surface dashboard",
+  title: "JARVIS",
+  description: "Global threat monitoring and intelligence dashboard",
 };
 
 export default function RootLayout({
