@@ -1,7 +1,7 @@
 import { Rectangle } from "cesium";
 
-export const KL_LAT = 3.139;
-export const KL_LON = 101.6869;
+export const KL_LAT = 3.1480;
+export const KL_LON = 101.7119;
 
 export const MALAYSIA_BOUNDS = {
   west: 99.5,

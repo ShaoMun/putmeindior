@@ -63,12 +63,12 @@ export default function MalaysiaMap() {
       });
       if (shouldStop()) return;
 
-      // Start directly over Malaysia
+      // Start directly over Setapak, zoomed in tight
       viewer.camera.setView({
-        destination: Cartesian3.fromDegrees(KL_LON, KL_LAT, 120_000),
+        destination: Cartesian3.fromDegrees(KL_LON, KL_LAT, 3_000),
         orientation: {
           heading: CesiumMath.toRadians(0),
-          pitch: CesiumMath.toRadians(-55),
+          pitch: CesiumMath.toRadians(-70),
           roll: 0,
         },
       });
