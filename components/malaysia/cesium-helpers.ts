@@ -112,17 +112,19 @@ export async function setDashboardVisualMode(viewer: Viewer) {
   });
   viewer.imageryLayers.addImageryProvider(blackBase);
 
-  // West Malaysia base
+  // West Malaysia base — Using CARTO Dark Matter (dark_nolabels)
   const malaysiaBaseWest = new UrlTemplateImageryProvider({
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png",
+    url: "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png",
     subdomains: ["a", "b", "c", "d"],
     rectangle: WEST_MALAYSIA_IMAGERY_RECTANGLE,
     credit: new Credit("© OpenStreetMap © CARTO"),
   });
   const layer = viewer.imageryLayers.addImageryProvider(malaysiaBaseWest);
-  layer.alpha = 0.92;
-  layer.brightness = 0.38;
-  layer.contrast = 1.1;
+  layer.alpha = 1.0;
+  // Boost base brightness/gamma so the dark-grey CARTO roads pop out visibly against the black background
+  layer.brightness = 1.5;
+  layer.contrast = 1.3;
+  layer.gamma = 1.2;
   layer.saturation = 0.0;
 
   // South China Sea ocean tile
@@ -135,9 +137,9 @@ export async function setDashboardVisualMode(viewer: Viewer) {
     }),
   );
   seaLayer.alpha = 1.0;
-  seaLayer.brightness = 1.06;
-  seaLayer.contrast = 1.3;
-  seaLayer.saturation = 1.35;
+  seaLayer.brightness = 0.6;
+  seaLayer.contrast = 1.0;
+  seaLayer.saturation = 0.0;
 
   // Dark labels on land
   for (const rectangle of LAND_IMAGERY_RECTANGLES) {

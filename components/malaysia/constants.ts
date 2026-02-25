@@ -30,4 +30,4 @@ export const LAND_IMAGERY_RECTANGLES = [WEST_MALAYSIA_IMAGERY_RECTANGLE];
 export const BLACK_PIXEL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5l9VUAAAAASUVORK5CYII=";
 export const OCEAN_TILE =
-  "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='4' height='4' fill='%23145f93'/%3E%3C/svg%3E";
+  "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='4' height='4' fill='%23080a0c'/%3E%3C/svg%3E";

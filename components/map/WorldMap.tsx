@@ -13,15 +13,38 @@ const CONSTANTS = {
   HEIGHT: 500,
 };
 
+// Disaster Color Coding
+const DISASTERS = {
+  FIRE: "#ff453a",    // Vibrant Red
+  FLOOD: "#0a84ff",   // Bright Cyan/Blue
+  QUAKE: "#ffd60a",   // Bright Yellow
+  SLIDE: "#ff9f0a"    // Orange
+};
+
 // Precise lat/lon for hotspots
 const HOTSPOTS = [
-  { lon: 101.6869, lat: 3.139, color: "#ff453a", size: 5, label: "CRIT (KL)" },
-  { lon: 10, lat: 51, color: "#ff9e45", size: 3, label: "MED" },
-  { lon: -74, lat: 40, color: "#ff9e45", size: 3, label: "MED" },
-  { lon: 20, lat: 0, color: "#ff453a", size: 4, label: "HIGH" },
-  { lon: -60, lat: -15, color: "#3ee96a", size: 2.5, label: "LOW" },
-  { lon: 135, lat: -25, color: "#ff9e45", size: 3, label: "MED" },
-  { lon: 35, lat: 32, color: "#ff453a", size: 4, label: "HIGH" }, 
+  { lon: 101.6869, lat: 3.139, color: DISASTERS.FIRE, size: 5, label: "KL" },
+  { lon: -120, lat: 38, color: DISASTERS.FIRE, size: 4, label: "California Fire" },
+  { lon: 140, lat: 36, color: DISASTERS.QUAKE, size: 4, label: "Tokyo Quake" },
+  { lon: 90, lat: 24, color: DISASTERS.FLOOD, size: 4.5, label: "Bangladesh Flood" },
+  { lon: -70, lat: -30, color: DISASTERS.QUAKE, size: 3.5, label: "Chile Quake" },
+  { lon: 20, lat: 50, color: DISASTERS.FLOOD, size: 3, label: "Central Europe" },
+  { lon: -60, lat: -10, color: DISASTERS.FIRE, size: 5, label: "Amazon Fire" },
+  { lon: 110, lat: -5, color: DISASTERS.SLIDE, size: 3, label: "Java Slide" },
+  { lon: 80, lat: 10, color: DISASTERS.FLOOD, size: 4, label: "Sri Lanka Flood" },
+  { lon: 35, lat: 39, color: DISASTERS.QUAKE, size: 4.5, label: "Turkey Quake" },
+  { lon: 153, lat: -28, color: DISASTERS.FIRE, size: 4, label: "Aus Bushfire" },
+  { lon: -100, lat: 19, color: DISASTERS.QUAKE, size: 3.5, label: "Mexico Quake" },
+  { lon: 30, lat: -2, color: DISASTERS.SLIDE, size: 3, label: "Rwanda Slide" },
+  { lon: -122, lat: 47, color: DISASTERS.SLIDE, size: 3, label: "WA Landslide" },
+  { lon: 115, lat: 30, color: DISASTERS.FLOOD, size: 5, label: "Yangtze Flood" },
+  { lon: -40, lat: -20, color: DISASTERS.FIRE, size: 3.5, label: "Brazil Fire" },
+  { lon: 120, lat: 15, color: DISASTERS.QUAKE, size: 4, label: "Philippines" },
+  { lon: -5, lat: 40, color: DISASTERS.FIRE, size: 3.5, label: "Spain Fire" },
+  { lon: 25, lat: 45, color: DISASTERS.FLOOD, size: 3.5, label: "Romania Flood" },
+  { lon: -85, lat: 10, color: DISASTERS.SLIDE, size: 3, label: "Costa Rica" },
+  { lon: 45, lat: -20, color: DISASTERS.FLOOD, size: 4, label: "Madagascar" },
+  { lon: 170, lat: -43, color: DISASTERS.QUAKE, size: 4.5, label: "NZ Quake" }
 ];
 
 // Centers for continent text labels
@@ -324,21 +347,6 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
               filter="url(#glow-strong)"
               style={{ transition: "all 0.3s ease", pointerEvents: "none" }}
             />
-            {asiaCenter && hoveredAsia && (
-              <text
-                x={asiaCenter[0] - 10}
-                y={asiaCenter[1] - 40}
-                fill="#fff"
-                fontSize="11"
-                fontWeight="700"
-                letterSpacing="4"
-                pointerEvents="none"
-                filter="url(#glow-map)"
-                style={{ transition: "fill 0.3s" }}
-              >
-                CLICK TO DEPLOY
-              </text>
-            )}
           </g>
 
           {/* Hotspot Indicators */}
@@ -370,17 +378,6 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
                   filter="url(#glow-strong)"
                 />
                 
-                {/* Connecting lines for aesthetics (only drawing for a few) */}
-                {i > 0 && i < 4 && (
-                  <path
-                    d={`M ${projection([HOTSPOTS[0].lon, HOTSPOTS[0].lat])![0]} ${projection([HOTSPOTS[0].lon, HOTSPOTS[0].lat])![1]} Q ${(cx + projection([HOTSPOTS[0].lon, HOTSPOTS[0].lat])![0])/2} ${cy - 40} ${cx} ${cy}`}
-                    fill="none"
-                    stroke={h.color}
-                    strokeWidth={0.5}
-                    opacity={0.2}
-                    strokeDasharray="2 3"
-                  />
-                )}
               </g>
             );
           })}
@@ -429,9 +426,10 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
           }}
         >
           {[
-            { color: "#ff453a", label: "CRITICAL THREAT" },
-            { color: "#ff9e45", label: "ELEVATED RISK" },
-            { color: "#3ee96a", label: "MONITORING" },
+            { color: DISASTERS.FIRE, label: "WILDFIRE" },
+            { color: DISASTERS.FLOOD, label: "FLOOD DILUGE" },
+            { color: DISASTERS.QUAKE, label: "SEISMIC ACTIVITY" },
+            { color: DISASTERS.SLIDE, label: "LANDSLIDE" },
           ].map(({ color, label }) => (
             <div key={label} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
               <div
