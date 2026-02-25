@@ -104,6 +104,28 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
     return `M ${points.map((p) => p.join(",")).join(" L ")} Z`;
   }, [projection]);
 
+  const asiaCornerBrackets = useMemo(() => {
+    const coords = [
+      [ASIA_BBOX.minLon, ASIA_BBOX.minLat], // BL
+      [ASIA_BBOX.maxLon, ASIA_BBOX.minLat], // BR
+      [ASIA_BBOX.maxLon, ASIA_BBOX.maxLat], // TR
+      [ASIA_BBOX.minLon, ASIA_BBOX.maxLat], // TL
+    ];
+    const points = coords.map((c) => projection(c as [number, number])!);
+    if(points.some(p => !p)) return "";
+    
+    // tl is 3, tr is 2, br is 1, bl is 0
+    const [bl, br, tr, tl] = points;
+    const size = 15; // bracket length in pixels
+    
+    return `
+      M ${tl[0]} ${tl[1] + size} L ${tl[0]} ${tl[1]} L ${tl[0] + size} ${tl[1]}
+      M ${tr[0] - size} ${tr[1]} L ${tr[0]} ${tr[1]} L ${tr[0]} ${tr[1] + size}
+      M ${br[0]} ${br[1] - size} L ${br[0]} ${br[1]} L ${br[0] - size} ${br[1]}
+      M ${bl[0] + size} ${bl[1]} L ${bl[0]} ${bl[1]} L ${bl[0]} ${bl[1] - size}
+    `;
+  }, [projection]);
+
   const asiaCenter = projection([105, 20]);
 
   const pulseScale = (index: number) => {
@@ -243,8 +265,8 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
                 fill="#ffffff"
                 opacity={0.9}
                 fontSize="9"
-                fontWeight="600"
-                fontFamily="monospace"
+                fontWeight="bold"
+                fontFamily="Rajdhani, 'JetBrains Mono', monospace"
                 letterSpacing="2.5"
                 pointerEvents="none"
               >
@@ -268,6 +290,14 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
               strokeDasharray={hoveredAsia ? "none" : "6 4"}
               filter="url(#glow-map)"
               style={{ transition: "all 0.3s ease" }}
+            />
+            <path
+              d={asiaCornerBrackets}
+              fill="none"
+              stroke={hoveredAsia ? "rgba(74, 158, 255, 1)" : "rgba(74, 158, 255, 0.6)"}
+              strokeWidth={hoveredAsia ? 2.5 : 1.5}
+              filter="url(#glow-strong)"
+              style={{ transition: "all 0.3s ease", pointerEvents: "none" }}
             />
             {asiaCenter && hoveredAsia && (
               <text
@@ -338,7 +368,7 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
                <g transform={`translate(${klPos[0]}, ${klPos[1]})`} style={{ pointerEvents: 'none' }}>
                  <circle r="12" fill="none" stroke="rgba(255,69,58,0.8)" strokeWidth="1" strokeDasharray="4 2" />
                  <path d="M -16 0 L -8 0 M 16 0 L 8 0 M 0 -16 L 0 -8 M 0 16 L 0 8" stroke="rgba(255,69,58,0.9)" strokeWidth="1.5" />
-                 <text x="18" y="3" fill="#ff453a" fontSize="8" fontWeight="bold" letterSpacing="1">KL THREAT SECTOR</text>
+                 <text x="18" y="3" fill="#FFAE00" fontSize="8" fontWeight="bold" letterSpacing="1">KUALA LUMPUR</text>
                </g>
              )
           })()}
