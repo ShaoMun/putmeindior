@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import createGlobe from 'cobe';
 import { cn } from '@/lib/utils';
 
@@ -14,9 +14,15 @@ interface EarthProps {
   baseColor?: [number, number, number];
   markerColor?: [number, number, number];
   glowColor?: [number, number, number];
+  markers?: { location: [number, number]; size: number }[];
+  speed?: number;
 }
 
-const Earth: React.FC<EarthProps> = ({
+export interface GlobeHandle {
+  setSpeed: (speed: number) => void;
+}
+
+const Earth = forwardRef<GlobeHandle, EarthProps>(({
   className,
   theta = 0.25,
   dark = 1,
@@ -27,8 +33,18 @@ const Earth: React.FC<EarthProps> = ({
   baseColor = [0.4, 0.6509, 1],
   markerColor = [1, 0, 0],
   glowColor = [0.2745, 0.5765, 0.898],
-}) => {
+  markers = [],
+  speed = 0.003,
+}, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const speedRef = useRef(speed);
+  speedRef.current = speed;
+
+  useImperativeHandle(ref, () => ({
+    setSpeed: (s: number) => {
+      speedRef.current = s;
+    },
+  }));
 
   useEffect(() => {
     let width = 0;
@@ -55,10 +71,12 @@ const Earth: React.FC<EarthProps> = ({
       glowColor: glowColor,
       opacity: 1,
       offset: [0, 0],
-      markers: [],
+      markers: markers,
       onRender: (state: Record<string, any>) => {
         state.phi = phi;
-        phi += 0.003;
+        phi += speedRef.current;
+        state.width = width * 2;
+        state.height = width * 2;
       },
     });
 
@@ -70,21 +88,23 @@ const Earth: React.FC<EarthProps> = ({
   return (
     <div
       className={cn(
-        'flex items-center justify-center z-10 w-full max-w-[350px] mx-auto',
+        'relative flex items-center justify-center z-10 w-full mx-auto',
         className
       )}
+      style={{ aspectRatio: '1' }}
     >
       <canvas
         ref={canvasRef}
         style={{
           width: '100%',
           height: '100%',
-          maxWidth: '100%',
-          aspectRatio: '1',
+          contain: 'layout paint size',
+          opacity: 1,
         }}
       />
     </div>
   );
-};
+});
 
+Earth.displayName = 'Earth';
 export default Earth;

@@ -12,7 +12,6 @@ const MalaysiaMap = dynamic(() => import("@/components/malaysia/MalaysiaMap"), {
 export default function Home() {
   const [phase, setPhase] = useState<AppPhase>("EARTH_INTRO");
   const [malaysiaMounted, setMalaysiaMounted] = useState(false);
-
   const handleEarthZoomComplete = () => {
     setPhase("WORLD_MAP");
   };
@@ -24,6 +23,9 @@ export default function Home() {
     }
   };
 
+  const showEarth = phase === "EARTH_INTRO";
+  const showMap = phase === "WORLD_MAP" || phase === "MALAYSIA";
+
   return (
     <main
       style={{
@@ -34,18 +36,18 @@ export default function Home() {
         background: "#020408",
       }}
     >
-      {/* Phase 1: Three.js Earth */}
+      {/* Phase 1: Cobe Earth Globe */}
       <div
         style={{
           position: "absolute",
           inset: 0,
-          opacity: phase === "EARTH_INTRO" ? 1 : 0,
+          opacity: showEarth ? 1 : 0,
           pointerEvents: phase === "EARTH_INTRO" ? "auto" : "none",
-          transition: "opacity 0.6s ease",
-          zIndex: phase === "EARTH_INTRO" ? 30 : 10,
+          transition: "opacity 0.3s ease",
+          zIndex: showEarth ? 30 : 10,
         }}
       >
-        {phase === "EARTH_INTRO" && (
+        {showEarth && (
           <EarthIntro onZoomComplete={handleEarthZoomComplete} />
         )}
       </div>
@@ -55,13 +57,13 @@ export default function Home() {
         style={{
           position: "absolute",
           inset: 0,
-          opacity: phase === "WORLD_MAP" ? 1 : 0,
+          opacity: phase === "WORLD_MAP" || phase === "MALAYSIA" ? 1 : 0,
           pointerEvents: phase === "WORLD_MAP" ? "auto" : "none",
-          transition: "opacity 0.7s ease",
-          zIndex: phase === "WORLD_MAP" ? 30 : 10,
+          transition: "opacity 0.5s ease",
+          zIndex: phase === "WORLD_MAP" ? 25 : 10,
         }}
       >
-        {(phase === "WORLD_MAP" || phase === "MALAYSIA") && (
+        {showMap && (
           <WorldMap onRegionClick={handleRegionClick} />
         )}
       </div>

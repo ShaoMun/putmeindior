@@ -52,8 +52,25 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
   const [tick, setTick] = useState(0);
   const tickRef = useRef(0);
 
+  const [revealProgress, setRevealProgress] = useState(0);
+
   useEffect(() => {
     setVisible(true);
+    // Radar sweep reveal: animate clip-path from 0% to 100% over 800ms
+    const startTime = performance.now();
+    const duration = 800;
+    let rafId: number;
+    const animateReveal = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic for smooth deceleration
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setRevealProgress(eased * 100);
+      if (progress < 1) {
+        rafId = requestAnimationFrame(animateReveal);
+      }
+    };
+    rafId = requestAnimationFrame(animateReveal);
 
     const interval = setInterval(() => {
       tickRef.current += 1;
@@ -71,7 +88,10 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
       })
       .catch((err) => console.error("Failed to load map data", err));
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      cancelAnimationFrame(rafId);
+    };
   }, []);
 
   // Map projection & path generator
@@ -196,7 +216,12 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
         <svg
           viewBox={`0 0 ${CONSTANTS.WIDTH} ${CONSTANTS.HEIGHT}`}
           preserveAspectRatio="xMidYMid slice"
-          style={{ width: "100%", height: "100%", display: "block" }}
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "block",
+            clipPath: `circle(${revealProgress}% at 50% 50%)`,
+          }}
         >
           <defs>
             <filter id="glow-map">
