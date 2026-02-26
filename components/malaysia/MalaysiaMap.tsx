@@ -18,7 +18,6 @@ import {
   enterDashboard,
   setDashboardVisualMode,
   lockCameraToMalaysia,
-  addTerrainSurfaceMesh,
 } from "./cesium-helpers";
 
 type Phase = "LOADING" | "DASHBOARD";
@@ -36,7 +35,6 @@ export default function MalaysiaMap() {
     let clickHandler: ScreenSpaceEventHandler | undefined;
     let removeTileLoadListener: (() => void) | undefined;
     let removeCameraBoundsListener: (() => void) | undefined;
-    let removeTerrainMesh: (() => void) | undefined;
     let buildingsTileset: Cesium3DTileset | undefined;
     let isMounted = true;
     let isCleaningUp = false;
@@ -100,7 +98,6 @@ export default function MalaysiaMap() {
         });
         removeCameraBoundsListener = lockCameraToMalaysia(v);
         enterDashboard(v);
-        removeTerrainMesh = addTerrainSurfaceMesh(v);
         setPhase("DASHBOARD");
       }
 
@@ -136,7 +133,6 @@ export default function MalaysiaMap() {
       isCleaningUp = true;
       removeTileLoadListener?.();
       removeCameraBoundsListener?.();
-      removeTerrainMesh?.();
       clickHandler?.destroy();
       if (viewer && !viewer.isDestroyed()) {
         viewer.camera.cancelFlight();
