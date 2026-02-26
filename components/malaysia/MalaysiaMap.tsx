@@ -19,6 +19,7 @@ import {
   setDashboardVisualMode,
   lockCameraToMalaysia,
 } from "./cesium-helpers";
+import MalaysiaUI from "./MalaysiaUI";
 
 type Phase = "LOADING" | "DASHBOARD";
 
@@ -151,6 +152,7 @@ export default function MalaysiaMap() {
       <div ref={containerRef} className="cesium-container" />
       {loading && <div className="loading-overlay">Loading terrain...</div>}
       <div className={`hud-overlay ${phase === "DASHBOARD" ? "active" : ""}`} />
+      <MalaysiaUI phase={phase} />
     </main>
   );
 }
