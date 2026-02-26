@@ -191,7 +191,7 @@ export async function setDashboardVisualMode(viewer: Viewer) {
           
           // Make the color modern and high-tech by adding an emissive glow 
           // so it doesn't get darkened by the lack of sunlight in the scene.
-          material.emissive = material.diffuse * 0.3 * fade;
+          material.emissive = material.diffuse * 0.2 * fade;
         }
       `,
     });

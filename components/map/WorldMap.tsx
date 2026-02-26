@@ -4,66 +4,16 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { geoMercator, geoPath, geoGraticule10 } from "d3-geo";
 import * as topojson from "topojson-client";
 
+import { CONSTANTS, DISASTERS, CONTINENT_LABELS, ASIA_BBOX } from "./constants";
+import { HOTSPOTS } from "./hotspots";
+
 interface UniverseMapProps {
   onRegionClick: (region: string) => void;
 }
 
-const CONSTANTS = {
-  WIDTH: 1000,
-  HEIGHT: 500,
-};
 
-// Disaster Color Coding
-const DISASTERS = {
-  FIRE: "#ff453a",    // Vibrant Red
-  FLOOD: "#0a84ff",   // Bright Cyan/Blue
-  QUAKE: "#ffd60a",   // Bright Yellow
-  SLIDE: "#ff9f0a"    // Orange
-};
 
-// Precise lat/lon for hotspots
-const HOTSPOTS = [
-  { lon: 101.6869, lat: 3.139, color: DISASTERS.FIRE, size: 5, label: "KL" },
-  { lon: -120, lat: 38, color: DISASTERS.FIRE, size: 4, label: "California Fire" },
-  { lon: 140, lat: 36, color: DISASTERS.QUAKE, size: 4, label: "Tokyo Quake" },
-  { lon: 90, lat: 24, color: DISASTERS.FLOOD, size: 4.5, label: "Bangladesh Flood" },
-  { lon: -70, lat: -30, color: DISASTERS.QUAKE, size: 3.5, label: "Chile Quake" },
-  { lon: 20, lat: 50, color: DISASTERS.FLOOD, size: 3, label: "Central Europe" },
-  { lon: -60, lat: -10, color: DISASTERS.FIRE, size: 5, label: "Amazon Fire" },
-  { lon: 110, lat: -5, color: DISASTERS.SLIDE, size: 3, label: "Java Slide" },
-  { lon: 80, lat: 10, color: DISASTERS.FLOOD, size: 4, label: "Sri Lanka Flood" },
-  { lon: 35, lat: 39, color: DISASTERS.QUAKE, size: 4.5, label: "Turkey Quake" },
-  { lon: 153, lat: -28, color: DISASTERS.FIRE, size: 4, label: "Aus Bushfire" },
-  { lon: -100, lat: 19, color: DISASTERS.QUAKE, size: 3.5, label: "Mexico Quake" },
-  { lon: 30, lat: -2, color: DISASTERS.SLIDE, size: 3, label: "Rwanda Slide" },
-  { lon: -122, lat: 47, color: DISASTERS.SLIDE, size: 3, label: "WA Landslide" },
-  { lon: 115, lat: 30, color: DISASTERS.FLOOD, size: 5, label: "Yangtze Flood" },
-  { lon: -40, lat: -20, color: DISASTERS.FIRE, size: 3.5, label: "Brazil Fire" },
-  { lon: 120, lat: 15, color: DISASTERS.QUAKE, size: 4, label: "Philippines" },
-  { lon: -5, lat: 40, color: DISASTERS.FIRE, size: 3.5, label: "Spain Fire" },
-  { lon: 25, lat: 45, color: DISASTERS.FLOOD, size: 3.5, label: "Romania Flood" },
-  { lon: -85, lat: 10, color: DISASTERS.SLIDE, size: 3, label: "Costa Rica" },
-  { lon: 45, lat: -20, color: DISASTERS.FLOOD, size: 4, label: "Madagascar" },
-  { lon: 170, lat: -43, color: DISASTERS.QUAKE, size: 4.5, label: "NZ Quake" }
-];
 
-// Centers for continent text labels
-const CONTINENT_LABELS = [
-  { text: "NORTH AMERICA", lon: -100, lat: 45 },
-  { text: "SOUTH AMERICA", lon: -60, lat: -15 },
-  { text: "EUROPE", lon: 15, lat: 55 },
-  { text: "AFRICA", lon: 20, lat: 5 },
-  { text: "ASIA", lon: 95, lat: 45 },
-  { text: "OCEANIA", lon: 140, lat: -25 },
-];
-
-// Area defining the "Asia" click target
-const ASIA_BBOX = {
-  minLon: 60,
-  maxLon: 150,
-  minLat: -10,
-  maxLat: 55,
-};
 
 export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
   const [visible, setVisible] = useState(false);
@@ -350,7 +300,7 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
           </g>
 
           {/* Hotspot Indicators */}
-          {HOTSPOTS.map((h, i) => {
+          {HOTSPOTS.map((h: { lon: number, lat: number, color: string, size: number, label: string }, i: number) => {
             const pos = projection([h.lon, h.lat]);
             if (!pos) return null;
             const [cx, cy] = pos;
