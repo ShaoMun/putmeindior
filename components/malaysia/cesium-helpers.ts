@@ -9,11 +9,14 @@ import {
   createWorldTerrainAsync,
   HeightReference,
   Math as CesiumMath,
-  PolylineGlowMaterialProperty,
   Rectangle,
   SingleTileImageryProvider,
   UrlTemplateImageryProvider,
   Viewer,
+  CustomShader,
+  CustomShaderMode,
+  CustomShaderTranslucencyMode,
+  LightingModel,
   type Entity,
 } from "cesium";
 import { threats, threatColor } from "@/lib/threats";
@@ -121,7 +124,6 @@ export async function setDashboardVisualMode(viewer: Viewer) {
   });
   const layer = viewer.imageryLayers.addImageryProvider(malaysiaBaseWest);
   layer.alpha = 1.0;
-  // Boost base brightness/gamma so the dark-grey CARTO roads pop out visibly against the black background
   layer.brightness = 2.5;
   layer.contrast = 1.3;
   layer.gamma = 1.2;
@@ -165,15 +167,35 @@ export async function setDashboardVisualMode(viewer: Viewer) {
     const buildings = await createOsmBuildingsAsync();
     if (viewer.isDestroyed()) return undefined;
     buildings.show = true;
+
     buildings.style = new Cesium3DTileStyle({
       color: {
         conditions: [
-          ["${feature['cesium#estimatedHeight']} >= 80", "color('rgba(95,255,255,0.52)')"],
-          ["${feature['cesium#estimatedHeight']} >= 30", "color('rgba(70,245,255,0.4)')"],
-          ["true", "color('rgba(55,230,245,0.28)')"],
+          ["${feature['cesium#estimatedHeight']} >= 80", "color('#00ffcc', 0.65)"],
+          ["${feature['cesium#estimatedHeight']} >= 30", "color('#00e6b8', 0.45)"],
+          ["true", "color('#00cca3', 0.3)"],
         ],
       },
     });
+
+    buildings.customShader = new CustomShader({
+      mode: CustomShaderMode.MODIFY_MATERIAL,
+      translucencyMode: CustomShaderTranslucencyMode.TRANSLUCENT,
+      fragmentShaderText: `
+        void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+          // Fade the bottoms so you can see the map text
+          float z = fsInput.attributes.positionMC.z;
+          float fade = smoothstep(0.0, 35.0, z);
+          
+          material.alpha *= fade;
+          
+          // Make the color modern and high-tech by adding an emissive glow 
+          // so it doesn't get darkened by the lack of sunlight in the scene.
+          material.emissive = material.diffuse * 0.3 * fade;
+        }
+      `,
+    });
+
     buildings.maximumScreenSpaceError = 8;
     viewer.scene.primitives.add(buildings);
     return buildings;
