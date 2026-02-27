@@ -72,7 +72,7 @@ const Earth = forwardRef<GlobeHandle, EarthProps>(({
       opacity: 1,
       offset: [0, 0],
       markers: markers,
-      onRender: (state: Record<string, any>) => {
+      onRender: (state: Record<string, number>) => {
         state.phi = phi;
         phi += speedRef.current;
         state.width = width * 2;

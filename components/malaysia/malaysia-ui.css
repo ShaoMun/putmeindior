@@ -19,10 +19,18 @@
 }
 
 /* 1. Search Bar */
-.malaysia-ui-search {
+.malaysia-ui-search-wrapper {
   position: absolute;
   top: 24px;
   left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+  width: 320px;
+}
+
+.malaysia-ui-search {
   height: 48px;
   border-radius: 24px; /* Pill */
   display: flex;
@@ -30,7 +38,45 @@
   padding: 0 16px;
   gap: 12px;
   transition: box-shadow 0.2s ease, background 0.2s ease;
-  pointer-events: auto;
+  border-radius: 24px !important;
+}
+
+/* Suggestions dropdown */
+.malaysia-ui-suggestions {
+  border-radius: 12px !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.suggestion-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+  width: 100%;
+  font-family: inherit;
+}
+
+.suggestion-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.suggestion-name {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.suggestion-coords {
+  color: #64748b;
+  font-size: 11px;
+  font-family: "SF Mono", "Roboto Mono", monospace;
 }
 
 .malaysia-ui-search:hover,

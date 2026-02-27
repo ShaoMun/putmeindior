@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Cartesian2,
   Cartesian3,
@@ -13,7 +13,7 @@ import {
   Viewer,
   type Entity,
 } from "cesium";
-import { KL_LON, KL_LAT } from "./constants";
+import { KL_LON, KL_LAT, DEFAULT_CAMERA_HEIGHT_METERS } from "./constants";
 import {
   enterDashboard,
   setDashboardVisualMode,
@@ -25,8 +25,23 @@ type Phase = "LOADING" | "DASHBOARD";
 
 export default function MalaysiaMap() {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const viewerRef = useRef<Viewer | undefined>(undefined);
   const [phase, setPhase] = useState<Phase>("LOADING");
   const [loading, setLoading] = useState(true);
+
+  const flyToLocation = useCallback((lat: number, lon: number) => {
+    const v = viewerRef.current;
+    if (!v || v.isDestroyed()) return;
+    v.camera.flyTo({
+      destination: Cartesian3.fromDegrees(lon, lat, DEFAULT_CAMERA_HEIGHT_METERS),
+      orientation: {
+        heading: CesiumMath.toRadians(0),
+        pitch: CesiumMath.toRadians(-70),
+        roll: 0,
+      },
+      duration: 1.8,
+    });
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -60,11 +75,12 @@ export default function MalaysiaMap() {
         timeline: false,
         shouldAnimate: true,
       });
+      viewerRef.current = viewer;
       if (shouldStop()) return;
 
       // Start directly over Setapak, zoomed in tight
       viewer.camera.setView({
-        destination: Cartesian3.fromDegrees(KL_LON, KL_LAT, 3_000),
+        destination: Cartesian3.fromDegrees(KL_LON, KL_LAT, DEFAULT_CAMERA_HEIGHT_METERS),
         orientation: {
           heading: CesiumMath.toRadians(0),
           pitch: CesiumMath.toRadians(-70),
@@ -144,6 +160,7 @@ export default function MalaysiaMap() {
         viewer.destroy();
       }
       viewer = undefined;
+      viewerRef.current = undefined;
     };
   }, []);
 
@@ -152,7 +169,7 @@ export default function MalaysiaMap() {
       <div ref={containerRef} className="cesium-container" />
       {loading && <div className="loading-overlay">Loading terrain...</div>}
       <div className={`hud-overlay ${phase === "DASHBOARD" ? "active" : ""}`} />
-      <MalaysiaUI phase={phase} />
+      <MalaysiaUI phase={phase} onFlyTo={flyToLocation} />
     </main>
   );
 }

@@ -1,23 +1,20 @@
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
-import { geoMercator, geoPath, geoGraticule10 } from "d3-geo";
+import { geoMercator, geoPath, geoGraticule10, type GeoPermissibleObjects } from "d3-geo";
 import * as topojson from "topojson-client";
+import type { Feature, Geometry } from "geojson";
 
 import { CONSTANTS, DISASTERS, CONTINENT_LABELS, ASIA_BBOX } from "./constants";
 import { HOTSPOTS } from "./hotspots";
 
-interface UniverseMapProps {
+interface WorldMapProps {
   onRegionClick: (region: string) => void;
 }
 
-
-
-
-
-export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
+export default function WorldMap({ onRegionClick }: WorldMapProps) {
   const [visible, setVisible] = useState(false);
-  const [landFeatures, setLandFeatures] = useState<any[]>([]);
+  const [landFeatures, setLandFeatures] = useState<Feature<Geometry>[]>([]);
   const [hoveredAsia, setHoveredAsia] = useState(false);
   const [now, setNow] = useState<Date | null>(null);
   
@@ -55,8 +52,7 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
     fetch("https://unpkg.com/world-atlas@2.0.2/countries-110m.json")
       .then((res) => res.json())
       .then((topology) => {
-        // Feature collection of countries
-        const geojson = topojson.feature(topology, topology.objects.countries) as any;
+        const geojson = topojson.feature(topology, topology.objects.countries) as unknown as { type: "FeatureCollection"; features: Feature<Geometry>[] };
         setLandFeatures(geojson.features);
       })
       .catch((err) => console.error("Failed to load map data", err));
@@ -234,9 +230,9 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
             {landFeatures.map((feature, i) => (
               <path
                 key={i}
-                d={pathGenerator(feature) || ""}
-                fill="#121820"
-                stroke="rgba(255, 255, 255, 0.15)"
+                d={pathGenerator(feature as GeoPermissibleObjects) || ""}
+                fill="#0d131a"
+                stroke="rgba(74, 158, 255, 0.2)"
                 strokeWidth={0.5}
                 style={{
                   transition: "fill 0.2s"
@@ -319,13 +315,22 @@ export default function UniverseMap({ onRegionClick }: UniverseMapProps) {
                   opacity={0.4 / scale}
                 />
                 
-                {/* Inner glowing dot */}
+                {/* Inner glowing dot base */}
                 <circle
                   cx={cx}
                   cy={cy}
-                  r={h.size}
+                  r={h.size + 0.5}
                   fill={h.color}
                   filter="url(#glow-strong)"
+                  opacity={0.9}
+                />
+                
+                {/* Lightsaber bright core */}
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={h.size * 0.4}
+                  fill="#ffffff"
                 />
                 
               </g>

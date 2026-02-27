@@ -27,57 +27,30 @@ export default function Home() {
   const showMap = phase === "WORLD_MAP" || phase === "MALAYSIA";
 
   return (
-    <main
-      style={{
-        position: "relative",
-        width: "100vw",
-        height: "100dvh",
-        overflow: "hidden",
-        background: "#020408",
-      }}
-    >
+    <main className="relative w-screen h-[100dvh] overflow-hidden bg-[#020408]">
       {/* Phase 1: Cobe Earth Globe */}
       <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          opacity: showEarth ? 1 : 0,
-          pointerEvents: phase === "EARTH_INTRO" ? "auto" : "none",
-          transition: "opacity 0.3s ease",
-          zIndex: showEarth ? 30 : 10,
-        }}
+        className={`absolute inset-0 transition-opacity duration-300 ${
+          showEarth ? "opacity-100 pointer-events-auto z-30" : "opacity-0 pointer-events-none z-10"
+        }`}
       >
-        {showEarth && (
-          <EarthIntro onZoomComplete={handleEarthZoomComplete} />
-        )}
+        {showEarth && <EarthIntro onZoomComplete={handleEarthZoomComplete} />}
       </div>
 
       {/* Phase 2: World Map */}
       <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          opacity: phase === "WORLD_MAP" || phase === "MALAYSIA" ? 1 : 0,
-          pointerEvents: phase === "WORLD_MAP" ? "auto" : "none",
-          transition: "opacity 0.5s ease",
-          zIndex: phase === "WORLD_MAP" ? 25 : 10,
-        }}
+        className={`absolute inset-0 transition-opacity duration-500 ${
+          showMap ? "opacity-100" : "opacity-0"
+        } ${phase === "WORLD_MAP" ? "pointer-events-auto z-[25]" : "pointer-events-none z-10"}`}
       >
-        {showMap && (
-          <WorldMap onRegionClick={handleRegionClick} />
-        )}
+        {showMap && <WorldMap onRegionClick={handleRegionClick} />}
       </div>
 
       {/* Phase 3: Malaysia Cesium */}
       <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          opacity: phase === "MALAYSIA" ? 1 : 0,
-          pointerEvents: phase === "MALAYSIA" ? "auto" : "none",
-          transition: "opacity 0.8s ease",
-          zIndex: phase === "MALAYSIA" ? 30 : 5,
-        }}
+        className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+          phase === "MALAYSIA" ? "opacity-100 pointer-events-auto z-30" : "opacity-0 pointer-events-none z-0"
+        }`}
       >
         {malaysiaMounted && <MalaysiaMap />}
       </div>

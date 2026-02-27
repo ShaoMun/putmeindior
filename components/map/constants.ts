@@ -4,10 +4,10 @@ export const CONSTANTS = {
 };
 
 export const DISASTERS = {
-  FIRE: "#ff453a",    // Vibrant Red
-  FLOOD: "#0a84ff",   // Bright Cyan/Blue
-  QUAKE: "#ffd60a",   // Bright Yellow
-  SLIDE: "#ff9f0a",   // Orange
+  FIRE: "#ff2a2a",    // Sci-Fi Red
+  FLOOD: "#61b8ff",   // Sci-Fi Light Blue
+  QUAKE: "#ff9e3d",   // Sci-Fi Orange
+  SLIDE: "#b554ff",   // Sci-Fi Purple
 };
 
 export const CONTINENT_LABELS = [
