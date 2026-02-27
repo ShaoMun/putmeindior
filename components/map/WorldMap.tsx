@@ -343,9 +343,9 @@ export default function WorldMap({ onRegionClick }: WorldMapProps) {
              if(!klPos) return null;
              return (
                <g transform={`translate(${klPos[0]}, ${klPos[1]})`} style={{ pointerEvents: 'none' }}>
-                 <circle r="12" fill="none" stroke="rgba(255,69,58,0.8)" strokeWidth="1" strokeDasharray="4 2" />
-                 <path d="M -16 0 L -8 0 M 16 0 L 8 0 M 0 -16 L 0 -8 M 0 16 L 0 8" stroke="rgba(255,69,58,0.9)" strokeWidth="1.5" />
-                 <text x="18" y="3" fill="#FFAE00" fontSize="8" fontWeight="bold" letterSpacing="1">KUALA LUMPUR</text>
+                 <circle r="12" fill="none" stroke="rgba(97,184,255,0.8)" strokeWidth="1" strokeDasharray="4 2" />
+                 <path d="M -16 0 L -8 0 M 16 0 L 8 0 M 0 -16 L 0 -8 M 0 16 L 0 8" stroke="rgba(97,184,255,0.9)" strokeWidth="1.5" />
+                 <text x="18" y="3" fill="#61b8ff" fontSize="8" fontWeight="bold" letterSpacing="1">KUALA LUMPUR</text>
                </g>
              )
           })()}
@@ -381,8 +381,7 @@ export default function WorldMap({ onRegionClick }: WorldMapProps) {
           }}
         >
           {[
-            { color: DISASTERS.FIRE, label: "WILDFIRE" },
-            { color: DISASTERS.FLOOD, label: "FLOOD DILUGE" },
+            { color: DISASTERS.FLOOD, label: "FLOOD DELUGE" },
             { color: DISASTERS.QUAKE, label: "SEISMIC ACTIVITY" },
             { color: DISASTERS.SLIDE, label: "LANDSLIDE" },
           ].map(({ color, label }) => (

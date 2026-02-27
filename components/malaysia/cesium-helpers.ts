@@ -22,7 +22,7 @@ import {
   LightingModel,
   type Entity,
 } from "cesium";
-import { threats, threatColor } from "@/lib/threats";
+import { threats, type ThreatType } from "@/lib/threats";
 import {
   KL_LAT,
   KL_LON,
@@ -41,11 +41,9 @@ import {
 
 /* ─── marker color helper ─── */
 
-function markerColor(probability: number) {
-  const bucket = threatColor(probability);
-  if (bucket === "green") return Color.fromCssColorString("#3ee96a");
-  if (bucket === "orange") return Color.fromCssColorString("#ff9e45");
-  return Color.fromCssColorString("#ff3b2f");
+function markerColor(type: ThreatType) {
+  if (type === "flood") return Color.fromCssColorString("#61b8ff");    // Sci-Fi Blue
+  return Color.fromCssColorString("#ff9e3d");                          // Sci-Fi Orange (landslide)
 }
 
 /* ─── Scene & lighting setup ─── */
@@ -88,7 +86,7 @@ function addThreatEntities(viewer: Viewer) {
     const isFloodSignal = threat.id === FLOOD_SIGNAL_THREAT_ID;
     const dotColor = isFloodSignal
       ? Color.fromCssColorString("#61b8ff")
-      : markerColor(threat.probability);
+      : markerColor(threat.type);
 
     viewer.entities.add({
       id: `threat-${threat.id}`,
