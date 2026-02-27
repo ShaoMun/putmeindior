@@ -18,6 +18,8 @@ import {
   enterDashboard,
   setDashboardVisualMode,
   lockCameraToMalaysia,
+  FLOOD_SIGNAL_THREAT_ID,
+  addEvacuationRoute,
 } from "./cesium-helpers";
 import MalaysiaUI from "./MalaysiaUI";
 
@@ -28,6 +30,7 @@ export default function MalaysiaMap() {
   const viewerRef = useRef<Viewer | undefined>(undefined);
   const [phase, setPhase] = useState<Phase>("LOADING");
   const [loading, setLoading] = useState(true);
+  const [selectedThreatId, setSelectedThreatId] = useState<string | null>(null);
 
   const flyToLocation = useCallback((lat: number, lon: number) => {
     const v = viewerRef.current;
@@ -130,10 +133,18 @@ export default function MalaysiaMap() {
           } catch {
             return;
           }
-          if (!defined(picked)) return;
+          if (!defined(picked)) {
+            // Clicked empty space — dismiss any open card
+            setSelectedThreatId(null);
+            return;
+          }
           const entity = (picked as { id?: Entity }).id;
-          if (entity && !entity.id?.startsWith("threat-")) {
+          if (entity?.id === `threat-${FLOOD_SIGNAL_THREAT_ID}`) {
+            setSelectedThreatId(FLOOD_SIGNAL_THREAT_ID);
+          } else if (entity && !entity.id?.startsWith("threat-")) {
             v.selectedEntity = entity;
+          } else {
+            setSelectedThreatId(null);
           }
         },
         ScreenSpaceEventType.LEFT_CLICK,
@@ -164,12 +175,23 @@ export default function MalaysiaMap() {
     };
   }, []);
 
+  // Show / hide evacuation route when flood hotspot is selected
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || viewer.isDestroyed()) return;
+
+    if (selectedThreatId === FLOOD_SIGNAL_THREAT_ID) {
+      const cleanup = addEvacuationRoute(viewer);
+      return cleanup;
+    }
+  }, [selectedThreatId]);
+
   return (
     <main className="threat-experience">
       <div ref={containerRef} className="cesium-container" />
       {loading && <div className="loading-overlay">Loading terrain...</div>}
       <div className={`hud-overlay ${phase === "DASHBOARD" ? "active" : ""}`} />
-      <MalaysiaUI phase={phase} onFlyTo={flyToLocation} />
+      <MalaysiaUI phase={phase} onFlyTo={flyToLocation} selectedThreatId={selectedThreatId} onDismiss={() => setSelectedThreatId(null)} />
     </main>
   );
 }

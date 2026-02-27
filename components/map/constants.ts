@@ -6,8 +6,8 @@ export const CONSTANTS = {
 export const DISASTERS = {
   FIRE: "#ff2a2a",    // Sci-Fi Red
   FLOOD: "#61b8ff",   // Sci-Fi Light Blue
-  QUAKE: "#ff9e3d",   // Sci-Fi Orange
-  SLIDE: "#b554ff",   // Sci-Fi Purple
+  QUAKE: "#b554ff",   // Sci-Fi Purple
+  SLIDE: "#ff9e3d",   // Sci-Fi Orange
 };
 
 export const CONTINENT_LABELS = [

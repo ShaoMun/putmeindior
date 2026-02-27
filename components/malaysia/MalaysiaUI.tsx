@@ -1,13 +1,17 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Search, Layers, Crosshair, Flame } from "lucide-react";
+import { Search, Layers, Crosshair, Flame, X, Droplets, AlertTriangle, Clock, MapPin, Shield } from "lucide-react";
 import { WEST_MALAYSIA_LOCATIONS } from "./constants";
+import { FLOOD_SIGNAL_THREAT_ID } from "./cesium-helpers";
+import { threats } from "@/lib/threats";
 import "./malaysia-ui.css";
 
 interface MalaysiaUIProps {
   phase: "LOADING" | "DASHBOARD";
   onFlyTo: (lat: number, lon: number) => void;
+  selectedThreatId: string | null;
+  onDismiss: () => void;
 }
 
 interface Location {
@@ -42,13 +46,21 @@ function tryParseCoords(raw: string): { lat: number; lon: number } | null {
   return { lat, lon };
 }
 
-export default function MalaysiaUI({ phase, onFlyTo }: MalaysiaUIProps) {
+/** Get the flood threat data for the selected hotspot */
+function getFloodThreat() {
+  return threats.find((t) => t.id === FLOOD_SIGNAL_THREAT_ID) ?? null;
+}
+
+export default function MalaysiaUI({ phase, onFlyTo, selectedThreatId, onDismiss }: MalaysiaUIProps) {
   const [targetSelected, setTargetSelected] = useState(false);
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Location[]>([]);
   const [showDrop, setShowDrop] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
+
+  const showFloodCard = selectedThreatId === FLOOD_SIGNAL_THREAT_ID;
+  const floodThreat = showFloodCard ? getFloodThreat() : null;
 
   // Recompute suggestions whenever query changes
   useEffect(() => {
@@ -140,34 +152,92 @@ export default function MalaysiaUI({ phase, onFlyTo }: MalaysiaUIProps) {
         )}
       </div>
 
-      {/* 2. The Right Sidebar (Info Card) */}
-      <div className="malaysia-ui-infocard frosted-panel">
-        <div className="header">
-          <h2 className="title">Menara Ampang</h2>
-          <p className="subtitle">Sector 7G</p>
-        </div>
+      {/* 2. Flood Alert Card (Right Sidebar) — only when hotspot is clicked */}
+      <div className={`malaysia-ui-infocard frosted-panel ${showFloodCard ? "visible" : ""}`}>
+        {floodThreat && (
+          <>
+            {/* Dismiss button */}
+            <button className="dismiss-btn" onClick={onDismiss}>
+              <X size={16} />
+            </button>
 
-        <div className="data-rows">
-          <div className="data-row">
-            <span className="label">Risk Level</span>
-            <span className="val-critical">CRITICAL</span>
-          </div>
-          <div className="data-row">
-            <span className="label">Occupancy</span>
-            <span className="val-white">~42</span>
-          </div>
-          <div className="data-row">
-            <span className="label">Structure</span>
-            <span className="val-grey">Concrete</span>
-          </div>
-        </div>
+            {/* Header */}
+            <div className="header">
+              <div className="alert-badge flood">
+                <Droplets size={14} />
+                <span>FLOOD ALERT</span>
+              </div>
+              <h2 className="title">Kampung Baru</h2>
+              <p className="subtitle">
+                <MapPin size={12} style={{ display: "inline", marginRight: 4 }} />
+                {floodThreat.lat.toFixed(4)}°N, {floodThreat.lon.toFixed(4)}°E
+              </p>
+            </div>
 
-        <button
-          className="action-btn"
-          onClick={() => setTargetSelected(!targetSelected)}
-        >
-          Analyze Target
-        </button>
+            {/* Probability gauge */}
+            <div className="probability-section">
+              <div className="prob-header">
+                <AlertTriangle size={14} />
+                <span className="label">Flood Probability</span>
+              </div>
+              <div className="prob-bar-track">
+                <div
+                  className="prob-bar-fill"
+                  style={{ width: `${floodThreat.probability * 100}%` }}
+                />
+              </div>
+              <span className="prob-value">{(floodThreat.probability * 100).toFixed(0)}%</span>
+            </div>
+
+            {/* Time estimate */}
+            <div className="data-rows">
+              <div className="data-row">
+                <span className="label"><Clock size={12} /> Est. Time to Onset</span>
+                <span className="val-warning">~2h 15min</span>
+              </div>
+              <div className="data-row">
+                <span className="label"><Droplets size={12} /> Rainfall (6h)</span>
+                <span className="val-white">{floodThreat.drivers.rainfall_6h_mm} mm</span>
+              </div>
+              <div className="data-row">
+                <span className="label">Soil Wetness</span>
+                <span className="val-white">{(floodThreat.drivers.soil_wetness * 100).toFixed(0)}%</span>
+              </div>
+              <div className="data-row">
+                <span className="label">Terrain Slope</span>
+                <span className="val-grey">{(floodThreat.drivers.slope * 100).toFixed(1)}%</span>
+              </div>
+            </div>
+
+            {/* Reasoning */}
+            <div className="reasoning-section">
+              <div className="section-header">
+                <AlertTriangle size={13} />
+                <span>Analysis</span>
+              </div>
+              <p className="reasoning-text">
+                Continuous heavy rainfall of {floodThreat.drivers.rainfall_6h_mm}mm over the past 6 hours coupled with
+                {" "}{(floodThreat.drivers.soil_wetness * 100).toFixed(0)}% soil saturation in the Kampung Baru
+                low-lying basin. Historical drainage capacity of Sungai Klang is likely exceeded.
+                Flash flood conditions expected within 2–3 hours.
+              </p>
+            </div>
+
+            {/* Evacuation */}
+            <div className="evac-section">
+              <div className="section-header evac">
+                <Shield size={13} />
+                <span>Evacuation Plan</span>
+              </div>
+              <ul className="evac-list">
+                <li>Move to higher ground above Jalan Raja Muda</li>
+                <li>Proceed to Dewan Komuniti Kampung Baru (600m NW)</li>
+                <li>Avoid Sungai Klang riverbank and underpasses</li>
+                <li>Emergency hotline: <strong>999</strong> / NADMA: <strong>03-8064 2400</strong></li>
+              </ul>
+            </div>
+          </>
+        )}
       </div>
 
       {/* 3. The Bottom Bar (The Tray) */}

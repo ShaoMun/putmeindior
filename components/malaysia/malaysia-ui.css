@@ -112,29 +112,79 @@
   justify-content: center;
 }
 
-/* 2. Info Card (Right Sidebar) */
+/* 2. Info Card (Right Sidebar) — hidden by default, slides in */
 .malaysia-ui-infocard {
   position: absolute;
   right: 24px;
   top: 50%;
-  transform: translateY(-50%);
-  width: 280px;
+  transform: translateY(-50%) translateX(120%);
+  width: 300px;
   padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
   pointer-events: auto;
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.malaysia-ui-infocard.visible {
+  transform: translateY(-50%) translateX(0);
+  opacity: 1;
+}
+
+.malaysia-ui-infocard .dismiss-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.malaysia-ui-infocard .dismiss-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
 }
 
 .malaysia-ui-infocard .header {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+}
+
+.malaysia-ui-infocard .alert-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.malaysia-ui-infocard .alert-badge.flood {
+  background: rgba(97, 184, 255, 0.15);
+  color: #61b8ff;
+  border: 1px solid rgba(97, 184, 255, 0.3);
 }
 
 .malaysia-ui-infocard .header .title {
   font-weight: 700;
-  font-size: 18px;
+  font-size: 20px;
   margin: 0;
   letter-spacing: 0.5px;
 }
@@ -143,47 +193,156 @@
   color: #90a2b3;
   font-size: 12px;
   margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
-.malaysia-ui-infocard .data-rows {
+/* Probability section */
+.malaysia-ui-infocard .probability-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 6px;
 }
 
-.malaysia-ui-infocard .data-row {
+.malaysia-ui-infocard .prob-header {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.malaysia-ui-infocard .data-row .label {
+  align-items: center;
+  gap: 6px;
   color: #94a3b8;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
+.malaysia-ui-infocard .prob-bar-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.malaysia-ui-infocard .prob-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #61b8ff, #3d9eff);
+  box-shadow: 0 0 10px rgba(97, 184, 255, 0.5);
+  transition: width 0.6s ease;
+}
+
+.malaysia-ui-infocard .prob-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: #61b8ff;
+  text-shadow: 0 0 12px rgba(97, 184, 255, 0.4);
+}
+
+.malaysia-ui-infocard .data-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.malaysia-ui-infocard .data-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.malaysia-ui-infocard .data-row .label {
+  color: #94a3b8;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .malaysia-ui-infocard .data-row .val-critical {
   color: #ef4444;
   font-weight: 700;
-  font-size: 18px;
+  font-size: 16px;
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+.malaysia-ui-infocard .data-row .val-warning {
+  color: #61b8ff;
+  font-weight: 700;
+  font-size: 16px;
+  text-shadow: 0 0 8px rgba(97, 184, 255, 0.3);
 }
 
 .malaysia-ui-infocard .data-row .val-white {
   color: white;
   font-weight: 600;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .malaysia-ui-infocard .data-row .val-grey {
   color: #cbd5e1;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 15px;
+}
+
+/* Analysis / Reasoning */
+.malaysia-ui-infocard .section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #ff9e3d;
+  margin-bottom: 4px;
+}
+
+.malaysia-ui-infocard .section-header.evac {
+  color: #3ee96a;
+}
+
+.malaysia-ui-infocard .reasoning-text {
+  font-size: 12.5px;
+  color: #b0bec5;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* Evacuation plan */
+.malaysia-ui-infocard .evac-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.malaysia-ui-infocard .evac-list li {
+  font-size: 12px;
+  color: #cbd5e1;
+  padding-left: 14px;
+  position: relative;
+  line-height: 1.5;
+}
+
+.malaysia-ui-infocard .evac-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3ee96a;
+  box-shadow: 0 0 6px rgba(62, 233, 106, 0.5);
+}
+
+.malaysia-ui-infocard .evac-list li strong {
+  color: white;
 }
 
 .malaysia-ui-infocard .action-btn {
