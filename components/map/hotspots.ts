@@ -1,7 +1,7 @@
 import { DISASTERS } from "./constants";
 
 export const BASE_HOTSPOTS = [
-  { lon: 101.6869, lat: 3.139, color: DISASTERS.FIRE, size: 2.5, label: "KL" },
+  { lon: 101.6869, lat: 3.139, color: DISASTERS.FLOOD, size: 2.5, label: "KL" },
   { lon: -120, lat: 38, color: DISASTERS.FIRE, size: 2, label: "California Fire" },
   { lon: 140, lat: 36, color: DISASTERS.QUAKE, size: 2, label: "Tokyo Quake" },
   { lon: 90, lat: 24, color: DISASTERS.FLOOD, size: 2.2, label: "Bangladesh Flood" },
@@ -279,4 +279,4 @@ export const HOTSPOTS = [
   { lon: 104.5451, lat: 45.8749, color: DISASTER_COLORS[3], size: 1.53, label: "" },
   { lon: -74.9034, lat: 56.6734, color: DISASTER_COLORS[0], size: 1.89, label: "" },
   { lon: -76.2821, lat: 81.9438, color: DISASTER_COLORS[1], size: 1.41, label: "" }
-];
+].filter(h => h.color !== DISASTERS.FIRE);
