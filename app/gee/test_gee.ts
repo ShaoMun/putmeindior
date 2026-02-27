@@ -181,7 +181,7 @@ ee.data.authenticateViaPrivateKey(
             );
           }
 
-          log("Done ✅");
+          log("Done export to big query successfully");
           process.exit(0);
         } catch (e: any) {
           error("Run failed", e);
