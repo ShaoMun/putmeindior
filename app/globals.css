@@ -1,26 +1,59 @@
 @import "tailwindcss";
+@import "cesium/Build/Cesium/Widgets/widgets.css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #05090f;
+  --panel: rgba(6, 10, 15, 0.78);
+  --line: rgba(98, 122, 140, 0.32);
+  --text: #d6e3ef;
+  --muted: #90a2b3;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  background: #020408;
+  color: var(--text);
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ── Cesium Malaysia Map container ── */
+
+.threat-experience {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.cesium-container {
+  width: 100%;
+  height: 100%;
+}
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 16;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(3, 6, 12, 0.75);
+  backdrop-filter: blur(3px);
+}
+
+.hud-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 18;
+  pointer-events: none;
 }

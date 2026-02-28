@@ -1,65 +1,59 @@
-import Image from "next/image";
+"use client";
+
+import dynamic from "next/dynamic";
+import { useState } from "react";
+
+type AppPhase = "EARTH_INTRO" | "WORLD_MAP" | "MALAYSIA";
+
+const EarthIntro = dynamic(() => import("@/components/earth/EarthIntro"), { ssr: false });
+const WorldMap = dynamic(() => import("@/components/map/WorldMap"), { ssr: false });
+const MalaysiaMap = dynamic(() => import("@/components/malaysia/MalaysiaMap"), { ssr: false });
 
 export default function Home() {
+  const [phase, setPhase] = useState<AppPhase>("EARTH_INTRO");
+  const [malaysiaMounted, setMalaysiaMounted] = useState(false);
+  const handleEarthZoomComplete = () => {
+    setPhase("WORLD_MAP");
+  };
+
+  const handleRegionClick = (region: string) => {
+    if (region === "asia") {
+      setMalaysiaMounted(true);
+      setTimeout(() => setPhase("MALAYSIA"), 60);
+    }
+  };
+
+  const showEarth = phase === "EARTH_INTRO";
+  const showMap = phase === "WORLD_MAP" || phase === "MALAYSIA";
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="relative w-screen h-[100dvh] overflow-hidden bg-[#020408]">
+      {/* Phase 1: Cobe Earth Globe */}
+      <div
+        className={`absolute inset-0 transition-opacity duration-300 ${
+          showEarth ? "opacity-100 pointer-events-auto z-30" : "opacity-0 pointer-events-none z-10"
+        }`}
+      >
+        {showEarth && <EarthIntro onZoomComplete={handleEarthZoomComplete} />}
+      </div>
+
+      {/* Phase 2: World Map */}
+      <div
+        className={`absolute inset-0 transition-opacity duration-500 ${
+          showMap ? "opacity-100" : "opacity-0"
+        } ${phase === "WORLD_MAP" ? "pointer-events-auto z-[25]" : "pointer-events-none z-10"}`}
+      >
+        {showMap && <WorldMap onRegionClick={handleRegionClick} />}
+      </div>
+
+      {/* Phase 3: Malaysia Cesium */}
+      <div
+        className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+          phase === "MALAYSIA" ? "opacity-100 pointer-events-auto z-30" : "opacity-0 pointer-events-none z-0"
+        }`}
+      >
+        {malaysiaMounted && <MalaysiaMap />}
+      </div>
+    </main>
   );
 }

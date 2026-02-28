@@ -1,0 +1,733 @@
+/* "Frosted Aerogel" CSS Formula */
+.frosted-panel {
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border-radius: 16px;
+  color: white;
+  font-family: "Inter", "Roboto", sans-serif;
+}
+
+/* Container for UI layer to ensure it covers UI but respects pointer events */
+.malaysia-ui-wrapper {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* 1. Search Bar */
+.malaysia-ui-search-wrapper {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+  width: 320px;
+}
+
+.malaysia-ui-search {
+  height: 48px;
+  border-radius: 24px; /* Pill */
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  transition: box-shadow 0.2s ease, background 0.2s ease;
+  border-radius: 24px !important;
+}
+
+/* Suggestions dropdown */
+.malaysia-ui-suggestions {
+  border-radius: 12px !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.suggestion-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+  width: 100%;
+  font-family: inherit;
+}
+
+.suggestion-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.suggestion-name {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.suggestion-coords {
+  color: #64748b;
+  font-size: 11px;
+  font-family: "SF Mono", "Roboto Mono", monospace;
+}
+
+.malaysia-ui-search:hover,
+.malaysia-ui-search:focus-within {
+  box-shadow: 0 0 15px rgba(255,255,255,0.1), 0 20px 40px rgba(0,0,0,0.4);
+  background: rgba(20, 20, 20, 0.7);
+}
+
+.malaysia-ui-search input {
+  background: transparent;
+  border: none;
+  color: white;
+  width: 220px;
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+}
+
+.malaysia-ui-search input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.malaysia-ui-search .divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.malaysia-ui-search .icon {
+  color: rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 2. Info Card (Right Sidebar) — hidden by default, slides in */
+.malaysia-ui-infocard {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%) translateX(120%);
+  width: 300px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  pointer-events: auto;
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.malaysia-ui-infocard.visible {
+  transform: translateY(-50%) translateX(0);
+  opacity: 1;
+}
+
+.malaysia-ui-infocard .dismiss-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.malaysia-ui-infocard .dismiss-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.malaysia-ui-infocard .header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.malaysia-ui-infocard .alert-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.malaysia-ui-infocard .alert-badge.flood {
+  background: rgba(97, 184, 255, 0.15);
+  color: #61b8ff;
+  border: 1px solid rgba(97, 184, 255, 0.3);
+}
+
+.malaysia-ui-infocard .header .title {
+  font-weight: 700;
+  font-size: 20px;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.malaysia-ui-infocard .header .subtitle {
+  color: #90a2b3;
+  font-size: 12px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Probability section */
+.malaysia-ui-infocard .probability-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.malaysia-ui-infocard .prob-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.malaysia-ui-infocard .prob-bar-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.malaysia-ui-infocard .prob-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #61b8ff, #3d9eff);
+  box-shadow: 0 0 10px rgba(97, 184, 255, 0.5);
+  transition: width 0.6s ease;
+}
+
+.malaysia-ui-infocard .prob-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: #61b8ff;
+  text-shadow: 0 0 12px rgba(97, 184, 255, 0.4);
+}
+
+.malaysia-ui-infocard .data-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.malaysia-ui-infocard .data-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.malaysia-ui-infocard .data-row .label {
+  color: #94a3b8;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.malaysia-ui-infocard .data-row .val-critical {
+  color: #ef4444;
+  font-weight: 700;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.malaysia-ui-infocard .data-row .val-warning {
+  color: #61b8ff;
+  font-weight: 700;
+  font-size: 16px;
+  text-shadow: 0 0 8px rgba(97, 184, 255, 0.3);
+}
+
+.malaysia-ui-infocard .data-row .val-white {
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.malaysia-ui-infocard .data-row .val-grey {
+  color: #cbd5e1;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+/* Analysis / Reasoning */
+.malaysia-ui-infocard .section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #ff9e3d;
+  margin-bottom: 4px;
+}
+
+.malaysia-ui-infocard .section-header.evac {
+  color: #3ee96a;
+}
+
+.malaysia-ui-infocard .reasoning-text {
+  font-size: 12.5px;
+  color: #b0bec5;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* Evacuation plan */
+.malaysia-ui-infocard .evac-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.malaysia-ui-infocard .evac-list li {
+  font-size: 12px;
+  color: #cbd5e1;
+  padding-left: 14px;
+  position: relative;
+  line-height: 1.5;
+}
+
+.malaysia-ui-infocard .evac-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3ee96a;
+  box-shadow: 0 0 6px rgba(62, 233, 106, 0.5);
+}
+
+.malaysia-ui-infocard .evac-list li strong {
+  color: white;
+}
+
+.malaysia-ui-infocard .action-btn {
+  width: 100%;
+  padding: 14px 0;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+  font-family: inherit;
+}
+
+.malaysia-ui-infocard .action-btn:hover {
+  background: #FFAE00;
+  color: black;
+}
+
+/* 3. Bottom Bar (The Tray) */
+.malaysia-ui-tray-container {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.malaysia-ui-tray {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  gap: 16px;
+  height: 56px;
+  border-radius: 28px;
+  min-width: 200px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.malaysia-ui-tray.expanded {
+  padding: 8px 12px 8px 24px;
+  gap: 24px;
+}
+
+.malaysia-ui-tray .icon-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  opacity: 0.5;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: opacity 0.2s, background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.malaysia-ui-tray .icon-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.malaysia-ui-tray .live-info-btn {
+  background: #FFAE00;
+  color: black;
+  border: none;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 10px 24px;
+  border-radius: 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.2s ease;
+  font-family: inherit;
+}
+
+.malaysia-ui-tray .live-info-btn:hover {
+  transform: scale(1.05);
+}
+
+/* Active icon button */
+.malaysia-ui-tray .icon-btn.active {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.15);
+  color: #FFAE00;
+}
+
+/* ═══════════════════════════════════════════
+   LIVE NEWS PANEL
+   ═══════════════════════════════════════════ */
+.malaysia-ui-news-panel {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%) translateY(30px);
+  width: min(92vw, 820px);
+  max-height: 65vh;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.35s ease,
+              visibility 0s 0.4s;
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+.malaysia-ui-news-panel.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  visibility: visible;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.35s ease,
+              visibility 0s 0s;
+}
+
+/* News Header */
+.news-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.news-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.news-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #e2f1ff;
+}
+
+.live-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #ff3b2f;
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 59, 47, 0.4);
+  border-radius: 4px;
+  background: rgba(255, 59, 47, 0.1);
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff3b2f;
+  animation: live-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.news-header .dismiss-btn {
+  position: static;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.news-header .dismiss-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+/* News Content */
+.news-content {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Featured Story */
+.news-featured {
+  flex: 1;
+  min-width: 0;
+}
+
+.news-featured-img {
+  width: 100%;
+  height: 100%;
+  min-height: 240px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.news-featured-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 16px;
+  gap: 8px;
+}
+
+.news-featured-headline {
+  font-size: 15px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  line-height: 1.35;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+.news-featured-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Category badge */
+.news-cat-badge {
+  display: inline-flex;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid;
+  width: fit-content;
+}
+
+.news-cat-badge.small {
+  font-size: 8px;
+  padding: 2px 6px;
+}
+
+/* News Grid */
+.news-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  min-width: 0;
+}
+
+.news-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.2s, border-color 0.2s;
+  cursor: pointer;
+}
+
+.news-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.news-card-img {
+  width: 100%;
+  height: 90px;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+.news-card-body {
+  padding: 8px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.news-card-headline {
+  font-size: 11px;
+  font-weight: 600;
+  color: #e2f1ff;
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.news-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.news-source {
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.news-time {
+  font-size: 10px;
+  color: #64748b;
+}
+
+/* News Ticker */
+.news-ticker {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  height: 32px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.ticker-label {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #FFAE00;
+  padding: 0 14px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.ticker-track {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ticker-text {
+  display: inline-block;
+  font-size: 11px;
+  color: #94a3b8;
+  letter-spacing: 0.3px;
+  animation: ticker-scroll 30s linear infinite;
+  padding-left: 100%;
+}
+
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
+/* Animations based on phase */
+.malaysia-ui-wrapper.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.malaysia-ui-wrapper.active {
+  opacity: 1;
+  transition: opacity 0.5s ease 0.5s;
+}
