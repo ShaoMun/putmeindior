@@ -2,7 +2,6 @@ import {
   CallbackProperty,
   Cartesian2,
   Cartesian3,
-  Cesium3DTileset,
   Cesium3DTileStyle,
   Color,
   Credit,
@@ -19,8 +18,6 @@ import {
   CustomShader,
   CustomShaderMode,
   CustomShaderTranslucencyMode,
-  LightingModel,
-  type Entity,
 } from "cesium";
 import { threats, type ThreatType } from "@/lib/threats";
 import {

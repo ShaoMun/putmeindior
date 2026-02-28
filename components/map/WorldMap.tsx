@@ -115,8 +115,6 @@ export default function WorldMap({ onRegionClick }: WorldMapProps) {
     `;
   }, [projection]);
 
-  const asiaCenter = projection([105, 20]);
-
   const pulseScale = (index: number) => {
     const offset = index * 18;
     return 1 + Math.sin((tick + offset) * 0.18) * 0.4;
